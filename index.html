@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#e5efe1">
+  <meta name="description" content="Turn a little planet, raise its first ridge, and grow a spring meadow on every side.">
+  <title>EcoVis Grassland · Little Planet</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/three.min.js" defer></script>
+  <script src="terrain.js" defer></script>
+  <script src="game.js" defer></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="brand">
+      <span class="brand-emblem" data-icon="logo"></span>
+      <span>EcoVis <i>Grassland</i></span>
+    </div>
+    <button class="secondary restart" id="restart"><span data-icon="restart"></span> Restart</button>
+  </header>
+  <main class="workspace">
+    <aside class="lesson" aria-labelledby="task-title">
+      <ol class="steps" aria-label="Fieldwork stages">
+        <li id="step-earth" aria-current="step"><span data-icon="ridge"></span> Sculpt</li>
+        <li id="step-grass"><span data-icon="grass"></span> Sow</li>
+      </ol>
+      <div class="task-copy" aria-live="polite">
+        <h1 id="task-title">Shape a little world.</h1>
+        <p id="task-description">Turn the planet to look around. Then choose Raise and drag from the ring to lift a ridge.</p>
+      </div>
+      <div class="task-action">
+        <div class="progress-label"><span id="progress-name">Ridge progress</span><strong id="progress-value">0%</strong></div>
+        <div class="progress-track" id="progress" role="progressbar" aria-label="Ridge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+        <button class="primary" id="next" disabled>Continue to sowing</button>
+      </div>
+    </aside>
+    <section id="scene" class="scene" aria-label="3D planet">
+      <div class="canvas-space">
+        <canvas id="world" tabindex="0" aria-label="3D planet. Drag to use the selected tool. Arrow keys turn the planet. When a brush is selected, press Enter to use it at the center."></canvas>
+        <div class="camera-tools" role="group" aria-label="Zoom and view controls">
+          <button id="zoom-in" class="icon-button" aria-label="Zoom in" title="Zoom in" data-icon="plus"></button>
+          <button id="zoom-out" class="icon-button" aria-label="Zoom out" title="Zoom out" data-icon="minus"></button>
+          <button id="home" class="icon-button" aria-label="Reset view" title="Reset view" data-icon="focus"></button>
+        </div>
+        <p id="fallback" hidden>3D rendering is unavailable here. Open the sandbox in a browser with WebGL enabled.</p>
+      </div>
+      <div class="tool-area">
+        <div class="tools" role="group" aria-label="Planet tools">
+          <button id="rotate" aria-pressed="true"><span data-icon="orbit"></span> Rotate</button>
+          <button id="brush" aria-pressed="false"><span id="brush-icon" data-icon="ridge"></span><span id="brush-name">Raise</span></button>
+        </div>
+        <p id="scene-tip">Drag the planet to turn it · Scroll to zoom</p>
+      </div>
+    </section>
+  </main>
+  <dialog id="restart-dialog" aria-labelledby="restart-title">
+    <h2 id="restart-title">Start again?</h2>
+    <p>This will return your planet to bare soil.</p>
+    <div class="dialog-actions">
+      <button class="secondary" id="keep">Keep working</button>
+      <button class="primary" id="confirm">Restart</button>
+    </div>
+  </dialog>
+</body>
+</html>

@@ -1,0 +1,98 @@
+:root {
+  color-scheme:light;
+  --ink:#233d32;
+  --muted:#496558;
+  --line:#c9dcd0;
+  --paper:#f4f8ef;
+  --forest:#245947;
+  --serif:Georgia,"Times New Roman",serif;
+  --sans:"Aptos","Segoe UI",sans-serif;
+}
+*,*::before,*::after {box-sizing:border-box}
+[hidden] {display:none !important}
+body {margin:0;min-height:100dvh;color:var(--ink);font:1rem/1.53 var(--sans);background:#edf5ea}
+button {font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:disabled {cursor:default}
+button:focus-visible,canvas:focus-visible {outline:2px solid #258869;outline-offset:3px}
+svg {display:block;width:21px;height:21px}
+[data-icon] {display:inline-grid;place-items:center;flex:none}
+.masthead {height:70px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(16px,4vw,58px);border-bottom:1px solid #d7e4d7;background:#f5f9f1}
+.brand {display:flex;align-items:center;gap:11px;font:700 1.65rem/1.05 var(--serif);letter-spacing:-.055em}
+.brand i {font-weight:400;color:#456f59}
+.brand-emblem {width:39px;height:39px;border-radius:13px;background:#275846;color:#dcf2c5}
+.brand-emblem svg {width:24px;height:24px}
+.secondary,.primary {display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:41px;padding:8px 13px;border-radius:9px;font-size:.875rem;font-weight:750}
+.secondary {background:#f8fbf4;border:1px solid #d4e2d4}
+.secondary:hover {background:#e7f2e5}
+.secondary svg {width:16px;height:16px}
+.primary {color:#f9fff1;background:#285e49}
+.primary:not(:disabled):hover {background:#194d39}
+.primary:disabled {background:#dceade;color:#617567}
+.workspace {
+  isolation:isolate;position:relative;min-height:calc(100dvh - 70px);max-width:1840px;margin:auto;
+  padding:clamp(17px,2.7vw,43px) clamp(20px,4vw,58px);display:grid;
+  grid-template-columns:clamp(245px,23.5vw,333px) minmax(0,1fr);align-items:center;
+  background:radial-gradient(ellipse at 68% 35%,#f2fbdb 0%,#e6f4dc 39%,#d5eae2 79%,#cee4dd 100%);
+}
+.lesson {z-index:1;width:100%;border-radius:22px;padding:25px 25px 26px;background:#f6f9eebf;border:1px solid #f4faec;box-shadow:0 12px 46px #2353440e}
+.steps {display:flex;align-items:center;gap:7px;list-style:none;padding:0;margin:0;flex-wrap:wrap}
+.steps li {display:flex;align-items:center;gap:5px;color:#57705e;font-weight:750;font-size:.875rem;border-radius:8px;padding:5px 8px}
+.steps li svg {width:16px;height:16px}
+.steps [aria-current="step"],.steps .complete {color:#285d45;background:#e1edda}
+.steps [aria-current="step"] {background:#dcebd5}
+.task-copy {margin-top:27px}
+.task-copy h1 {margin:0 0 13px;font:700 clamp(2.25rem,4.1vw,3.92rem)/.98 var(--serif);letter-spacing:-.077em;text-wrap:balance}
+.task-copy p {margin:0;color:var(--muted);max-width:28ch}
+.task-action {margin-top:28px}
+.progress-label {display:flex;justify-content:space-between;gap:8px;font-size:.875rem;color:#496658;margin-bottom:7px}
+.progress-label strong {color:var(--ink);font-variant-numeric:tabular-nums}
+.progress-track {height:7px;border-radius:9px;overflow:hidden;background:#dce9d9}
+.progress-track span {display:block;width:0;height:100%;border-radius:inherit;background:#588e52;transition:width .13s linear}
+#next {width:100%;margin-top:12px;min-height:45px}
+.scene {display:flex;flex-direction:column;align-self:stretch;min-width:0;min-height:500px}
+.canvas-space {flex:1;position:relative;min-height:0;overflow:hidden;border-radius:17px}
+canvas {position:absolute;inset:0;display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+canvas:focus-visible {outline-offset:-4px}
+.camera-tools {position:absolute;right:0;top:0;display:grid;gap:7px}
+.icon-button {width:42px;height:42px;background:#f6f9ebea;border:1px solid #f9fcf0;border-radius:10px;box-shadow:0 3px 14px #25514013}
+.icon-button:hover {background:#fcfff6}
+.icon-button svg {width:19px;height:19px}
+.tool-area {display:grid;justify-items:center;gap:8px;padding:1px 0 3px}
+.tools {display:flex;align-items:center;gap:5px;padding:4px;border:1px solid #fbffed;background:#f6f9e8e9;border-radius:13px;box-shadow:0 5px 18px #2445381b}
+.tools button {display:flex;align-items:center;justify-content:center;gap:7px;min-width:105px;min-height:40px;padding:6px 12px;border-radius:9px;font-weight:750;font-size:.9375rem;color:#375747}
+.tools button:hover {background:#e1efda}
+.tools button[aria-pressed="true"] {background:#275a45;color:#fffef1}
+.tools svg {width:19px;height:19px}
+#scene-tip {min-height:1.5em;text-align:center;font-size:.8125rem;color:#405d4f;margin:0;pointer-events:none}
+#fallback {position:absolute;left:17%;top:43%;width:66%;margin:0;padding:14px;background:#f8fbef;border-radius:8px;text-align:center}
+dialog {width:min(380px,calc(100% - 28px));padding:23px;border:1px solid var(--line);border-radius:17px;background:var(--paper);color:var(--ink);box-shadow:0 10px 45px #254a3944}
+dialog::backdrop {background:#14372969;backdrop-filter:blur(2px)}
+dialog h2 {margin:0 0 7px;font:700 1.85rem/1.1 var(--serif);letter-spacing:-.04em}
+dialog p {margin:0 0 18px;color:var(--muted)}
+.dialog-actions {display:flex;justify-content:flex-end;gap:8px}
+@media(max-width:890px){
+  .workspace {grid-template-columns:clamp(216px,31vw,266px) minmax(0,1fr);padding-left:18px;padding-right:18px}
+  .lesson {padding:18px}
+}
+@media(max-width:675px){
+  .masthead {height:57px;padding:0 12px}
+  .brand {font-size:1.39rem;gap:8px}
+  .brand-emblem {width:33px;height:33px;border-radius:10px}
+  .brand-emblem svg {width:21px;height:21px}
+  .secondary {min-height:36px;padding:6px 10px}
+  .workspace {min-height:calc(100dvh - 57px);display:flex;flex-direction:column-reverse;justify-content:flex-end;align-items:stretch;gap:10px;padding:9px 11px 12px}
+  .lesson {padding:13px 14px 14px;border-radius:14px}
+  .steps li {padding:2px 6px}
+  .scene {min-height:0}
+  .canvas-space {flex:auto;height:clamp(262px,42dvh,460px)}
+  .task-copy {margin-top:9px}
+  .task-copy h1 {font-size:2rem;line-height:1.06;margin-bottom:4px}
+  .task-copy p {max-width:none;font-size:.9375rem}
+  .task-action {margin-top:9px}
+  .camera-tools {gap:6px}
+  .icon-button {width:36px;height:36px}
+  .icon-button svg {width:17px;height:17px}
+  .tool-area {gap:4px}
+  #next {min-height:39px;margin-top:8px}
+}
+@media(prefers-reduced-motion:reduce){.progress-track span {transition:none}}
