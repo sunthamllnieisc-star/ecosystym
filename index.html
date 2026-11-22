@@ -3,12 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#e5efe1">
-  <meta name="description" content="Turn a little planet, raise its first ridge, and grow a spring meadow on every side.">
+  <meta name="theme-color" content="#fff9eb">
+  <meta name="description" content="Turn a little planet and grow a spring meadow on every side.">
   <title>EcoVis Grassland · Little Planet</title>
   <link rel="stylesheet" href="styles.css">
   <script src="vendor/three.min.js" defer></script>
   <script src="terrain.js" defer></script>
+  <script src="sapling.js" defer></script>
+  <script src="meadow-motion.js" defer></script>
+  <script src="pasture.js" defer></script>
+  <script src="ecology.js" defer></script>
   <script src="game.js" defer></script>
 </head>
 <body>
@@ -19,41 +23,107 @@
     </div>
     <button class="secondary restart" id="restart"><span data-icon="restart"></span> Restart</button>
   </header>
-  <main class="workspace">
-    <aside class="lesson" aria-labelledby="task-title">
-      <ol class="steps" aria-label="Fieldwork stages">
-        <li id="step-earth" aria-current="step"><span data-icon="ridge"></span> Sculpt</li>
-        <li id="step-grass"><span data-icon="grass"></span> Sow</li>
-      </ol>
-      <div class="task-copy" aria-live="polite">
-        <h1 id="task-title">Shape a little world.</h1>
-        <p id="task-description">Turn the planet to look around. Then choose Raise and drag from the ring to lift a ridge.</p>
+  <main class="workspace" data-phase="sow">
+    <aside class="tool-rail" aria-label="Meadow controls">
+      <div class="field-tabs" role="group" aria-label="Field tools">
+        <button class="field-tab" data-panel="shrubs" aria-controls="panel-shrubs" aria-pressed="true"><span data-icon="sprout"></span> Shrubs</button>
+        <button class="field-tab" data-panel="time" aria-controls="panel-time" aria-pressed="false"><span data-icon="clock"></span> Time</button>
+        <button class="field-tab" data-panel="grazing" aria-controls="panel-grazing" aria-pressed="false"><span data-icon="graze"></span> Grazing</button>
+        <button class="field-tab" data-panel="management" aria-controls="panel-management" aria-pressed="false" aria-label="Management"><span data-icon="shears"></span> Manage</button>
       </div>
-      <div class="task-action">
-        <div class="progress-label"><span id="progress-name">Ridge progress</span><strong id="progress-value">0%</strong></div>
-        <div class="progress-track" id="progress" role="progressbar" aria-label="Ridge progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
-        <button class="primary" id="next" disabled>Continue to sowing</button>
-      </div>
+      <section class="field-card" id="panel-shrubs" aria-labelledby="tray-title">
+        <h2 id="tray-title">Sea buckthorn</h2>
+        <p id="shrub-lock">Finish sowing to unlock saplings.</p>
+        <div id="sapling-tray" aria-describedby="tray-tip" hidden>
+          <p class="tray-heading" id="sapling-count" role="status"></p>
+          <div class="tray-slots">
+            <button class="sapling-slot" aria-label="Sea buckthorn sapling 1" aria-pressed="false"><img src="assets/sapling-token.webp" alt="" draggable="false" width="224" height="224"><span class="slot-check" data-icon="check"></span></button>
+            <button class="sapling-slot" aria-label="Sea buckthorn sapling 2" aria-pressed="false"><img src="assets/sapling-token.webp" alt="" draggable="false" width="224" height="224"><span class="slot-check" data-icon="check"></span></button>
+            <button class="sapling-slot" aria-label="Sea buckthorn sapling 3" aria-pressed="false"><img src="assets/sapling-token.webp" alt="" draggable="false" width="224" height="224"><span class="slot-check" data-icon="check"></span></button>
+          </div>
+          <p id="tray-tip">Drag a sapling onto the planet.</p>
+        </div>
+      </section>
+      <section class="field-card" id="panel-time" hidden>
+        <h2 id="year-value">Year 0.0</h2>
+        <p class="growth-stage" id="growth-stage">Young saplings</p>
+        <input class="year-range" id="year-range" type="range" min="0" max="100" step="0.25" value="0" aria-label="Meadow year" aria-describedby="growth-stage" disabled>
+        <div class="year-ends" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+        <div class="dry-reading"><span>Dry ground</span><output id="dry-cover">0%</output></div>
+        <button class="field-action" id="play-time" disabled>Play timeline</button>
+        <button class="secondary soil-toggle" id="soil-view" aria-pressed="false" disabled><span data-icon="layers"></span> Soil view</button>
+        <p id="soil-notes" hidden>Root microbes fix nitrogen, and fallen leaves add organic matter. Switch back to see greener edges and thinner grass under dense shade.</p>
+      </section>
+      <section class="field-card" id="panel-grazing" hidden>
+        <h2>Grazing herd</h2>
+        <p id="herd-count">2 cattle and 3 sheep</p>
+        <div class="herd-actions">
+          <button class="field-action" id="graze" aria-pressed="false" disabled>Release herd</button>
+          <button class="field-action recall-herd" id="recall-herd" hidden disabled>Recall herd</button>
+        </div>
+      </section>
+      <section class="field-card" id="panel-management" hidden>
+        <h2>Prune shrubs</h2>
+        <p>Trim an established shrub to let light reach the grass.</p>
+        <button class="field-action" id="manage" aria-pressed="false" disabled>Choose shrub</button>
+      </section>
     </aside>
     <section id="scene" class="scene" aria-label="3D planet">
       <div class="canvas-space">
-        <canvas id="world" tabindex="0" aria-label="3D planet. Drag to use the selected tool. Arrow keys turn the planet. When a brush is selected, press Enter to use it at the center."></canvas>
+        <canvas id="world" tabindex="0" aria-label="3D planet. Arrow keys turn the planet. Press Enter to use the selected tool at the center."></canvas>
         <div class="camera-tools" role="group" aria-label="Zoom and view controls">
           <button id="zoom-in" class="icon-button" aria-label="Zoom in" title="Zoom in" data-icon="plus"></button>
           <button id="zoom-out" class="icon-button" aria-label="Zoom out" title="Zoom out" data-icon="minus"></button>
           <button id="home" class="icon-button" aria-label="Reset view" title="Reset view" data-icon="focus"></button>
         </div>
         <p id="fallback" hidden>3D rendering is unavailable here. Open the sandbox in a browser with WebGL enabled.</p>
+        <div class="soil-legend" id="soil-legend" hidden>
+          <strong>Soil nutrients <output id="enriched-cover">0% enriched</output></strong>
+          <div class="soil-scale" aria-hidden="true"></div>
+          <div class="soil-scale-labels"><span>Background</span><span>Enriched</span></div>
+        </div>
       </div>
       <div class="tool-area">
         <div class="tools" role="group" aria-label="Planet tools">
           <button id="rotate" aria-pressed="true"><span data-icon="orbit"></span> Rotate</button>
-          <button id="brush" aria-pressed="false"><span id="brush-icon" data-icon="ridge"></span><span id="brush-name">Raise</span></button>
+          <button id="brush" aria-pressed="false"><span data-icon="grass"></span> Sow</button>
         </div>
         <p id="scene-tip">Drag the planet to turn it · Scroll to zoom</p>
       </div>
     </section>
+    <aside class="task-panel" aria-labelledby="task-title">
+      <p class="task-label">Field tasks</p>
+      <div class="task-copy" aria-live="polite">
+        <h1 id="task-title">Grow a meadow.</h1>
+        <p id="task-description">Choose Sow and drag across the soil to plant grass. Use Rotate to reach the other side of your planet.</p>
+      </div>
+      <button class="primary next-step" id="next-step"><span id="next-step-label">Select Sow</span><span data-icon="arrow"></span></button>
+      <div class="task-action">
+        <div class="progress-label"><span id="progress-caption">Grass cover</span><strong id="progress-value">0%</strong></div>
+        <div class="progress-track" id="progress" role="progressbar" aria-label="Grass cover" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+      </div>
+      <ol class="field-tasks" id="field-tasks" hidden>
+        <li id="task-plant"><span class="task-marker" data-icon="check"></span><span>Plant the reward saplings</span><strong id="plant-progress">0 / 3</strong></li>
+        <li id="task-enrich"><span class="task-marker" data-icon="check"></span><span>Find enriched soil</span></li>
+        <li id="task-time"><span class="task-marker" data-icon="check"></span><span>Watch fruit ripen</span></li>
+        <li id="task-grazing"><span class="task-marker" data-icon="check"></span><span>Watch the herd graze</span></li>
+        <li id="task-management"><span class="task-marker" data-icon="check"></span><span>Prune a shrub</span></li>
+        <li id="task-desert"><span class="task-marker" data-icon="check"></span><span>Observe desertification</span></li>
+      </ol>
+      <p class="field-feedback" id="field-feedback" role="status" hidden></p>
+    </aside>
   </main>
+  <img id="drag-sapling" class="drag-sapling" src="assets/sapling-token.webp" alt="" draggable="false" hidden>
+  <dialog id="reward-dialog" class="reward-dialog" aria-labelledby="reward-title" aria-describedby="reward-description">
+    <div class="reward-art"><img src="assets/reward-saplings.webp" alt="" width="640" height="292"></div>
+    <h2 id="reward-title">Meadow complete!</h2>
+    <p class="reward-amount">3 sea buckthorn saplings</p>
+    <p id="reward-description">Drag them from the tray onto your planet.</p>
+    <form method="dialog" class="reward-actions">
+      <button class="primary" value="plant" autofocus><span data-icon="sprout"></span> Start planting</button>
+      <button class="reward-later" value="later">Plant later</button>
+    </form>
+  </dialog>
   <dialog id="restart-dialog" aria-labelledby="restart-title">
     <h2 id="restart-title">Start again?</h2>
     <p>This will return your planet to bare soil.</p>
