@@ -38,7 +38,6 @@ function createBerryClusters(shrub) {
   const mesh=new THREE.InstancedMesh(berryGeometry,berryMaterial,fruit.length);
   mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
   mesh.frustumCulled=false;
-  mesh.raycast=()=>{};
   shrub.add(mesh);
   return {mesh,fruit};
 }
@@ -71,6 +70,7 @@ function growSeaBuckthorn(shrub,age) {
     mesh.setColorAt(index,color.copy(green).lerp(orange,meadowEase(progress)));
   });
   mesh.instanceMatrix.needsUpdate=true;
+  mesh.boundingSphere=null;
   mesh.instanceColor.needsUpdate=true;
 }
 

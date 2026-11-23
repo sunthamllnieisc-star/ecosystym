@@ -1,441 +1,523 @@
 "use strict";
 
-const paths={
+const icons={
+  wind:'<path d="M3 9h10c4 0 4-6 .5-6-1.5 0-2.5 1-2.5 2M2 13h16c4 0 4-6 .5-6M4 17h8c3.5 0 3.5 5 .5 5"/>',
   logo:'<path d="M5 19c3-6 7-10 14-13-1 7-5 11-11 11m2-3c-4 0-7-3-7-7 4 0 7 2 8 4m-6 8c3 0 5-2 9-6"/>',
   restart:'<path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/>',
-  grass:'<path d="M4 20h16m-9 0c0-7-2-9-6-12m7 12c0-10 3-13 5-15m-2 15c1-4 3-6 6-7M8 20C7 17 5 15 3 15"/>',
-  sprout:'<path d="M5 20h14m-7 0v-8m0 3c-5 0-8-3-8-8 5 0 8 3 8 8Zm0-3c0-5 3-8 8-8 0 5-3 8-8 8Z"/>',
-  check:'<path d="m5 12 4 4L19 6"/>',
   clock:'<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
-  graze:'<path d="M4 17h16M5 13l4-3 4 3 6-5M7 19v2m5-2v2m5-2v2"/>',
   shears:'<circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8 8l12 12M8 16l12-12"/>',
   orbit:'<circle cx="12" cy="12" r="6"/><path d="M4 15c-1 2 0 3 2 3 5 0 13-5 14-8 1-2 0-3-2-3"/>',
   plus:'<path d="M12 5v14M5 12h14"/>',
   minus:'<path d="M5 12h14"/>',
   focus:'<path d="M4 9V4h5m6 0h5v5M4 15v5h5m6 0h5v-5"/><circle cx="12" cy="12" r="2"/>',
+  expand:'<path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/>',
+  guide:'<path d="M12 6c-3-2-6-2-9-1v13c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v13"/>',
   layers:'<path d="m3 8 9-5 9 5-9 5-9-5Zm0 4 9 5 9-5M3 16l9 5 9-5"/>',
-  arrow:'<path d="M4 12h15m-6-6 6 6-6 6"/>',
+  seed:'<path d="M7 18c-3-5 1-10 9-12 2 6-2 12-9 12Zm0 0 6-7"/>',
+  water:'<path d="M5 14a4 4 0 0 1 1-7.9A5.5 5.5 0 0 1 16.4 6a4 4 0 1 1 1 8ZM8 17l-1 2m6-2-1 3m6-3-1 2"/>',
+  spade:'<path d="m7 17 9-10m-8 6-4 4c0 2 1 3 3 3l4-4ZM14 5l3-3 4 4-3 3Z"/>',
+  burn:'<path d="M13 2c2 5-2 6 1 9 2-1 2-3 3-4 2 3 4 5 3 9a8 8 0 0 1-16-1c0-4 3-7 5-9 0 3 0 4 2 5 2-3 3-5 2-9Z"/><path d="M9 19c-1-2 1-4 3-6 0 3 4 4 3 6"/>',
+  close:'<path d="m6 6 12 12M18 6 6 18"/>',
 };
-const icon=name=>'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths[name]+'</svg>';
 const $=selector=>document.querySelector(selector);
-document.querySelectorAll("[data-icon]").forEach(el=>el.innerHTML=icon(el.dataset.icon));
+function iconMarkup(name){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+icons[name]+'</svg>';}
+for(const element of document.querySelectorAll("[data-icon]")){
+  const path=icons[element.dataset.icon];
+  element.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+path+'</svg>';
+}
 
-const canvas=$("#world");
-const workspace=$(".workspace");
-const rewardDialog=$("#reward-dialog");
-const tray=$("#sapling-tray");
-const saplingSlots=[...tray.querySelectorAll(".sapling-slot")];
-const dragImage=$("#drag-sapling");
-const yearRange=$("#year-range");
-const nextStep=$("#next-step");
-const fieldButtons=[yearRange,$("#play-time"),$("#soil-view"),$("#graze"),$("#manage"),$("#recall-herd")];
-const fieldTabs=[...document.querySelectorAll(".field-tab")];
-const guideSteps=[
-  {id:"plant",panel:"shrubs",title:"Plant your saplings.",text:"Drag the three sea buckthorn saplings from Shrubs onto the planet.",button:"Open Shrubs"},
-  {id:"enrich",panel:"time",title:"Look beneath the shrubs.",text:"Root microbes and fallen leaves enrich the soil around sea buckthorn. Open Soil view to see where.",button:"Show enriched soil"},
-  {id:"time",panel:"time",title:"Watch the berries ripen.",text:"See the branches expand and the fruit turn orange as time passes.",button:"Show ripening"},
-  {id:"grazing",panel:"grazing",title:"Release the grazing herd.",text:"Choose an open patch. The cattle and sheep will roam farther and shorten the grass where they eat.",button:"Choose a pasture"},
-  {id:"management",panel:"management",title:"Let more light in.",text:"Choose a mature shrub to prune, then compare the grass under its canopy.",button:"Find a shrub to prune"},
-  {id:"desert",panel:"time",title:"Follow the dry spell.",text:"Move towards Year 100 and watch grass thin into cracked soil. The Dry ground reading tracks the exposed area.",button:"Show Year 100"},
-];
-let world, meadow;
-try {
+const canvas=$("#world"),hotbar=$("#hotbar"),cursor=$("#placement-cursor"),yearRange=$("#year-range");
+const skyCloud=$("#sky-cloud");
+skyCloud.querySelector("img").src=cloudArt;
+const fieldCanvasLabel=canvas.getAttribute("aria-label");
+const touchOnly=matchMedia("(hover:none)").matches;
+const catalog={
+  seed:{name:"Grass seed",label:"Grass",image:"grass-token",color:"#e1edc8"},
+  buckthorn:{name:"Sea buckthorn",label:"Buckthorn",image:"sapling-token",color:"#e5edc9"},
+  water:{name:"Rain cloud",label:"Rain cloud",icon:"water",color:"#d5eae5"},
+  burn:{name:"Landscape burn",label:"Burn",icon:"burn",color:"#f6d7bd"},
+  spade:{name:"Spade",label:"Uproot",icon:"spade",color:"#e7dcca"},
+  herd:{name:"Grazing herd",label:"Herd",image:"herd-token",color:"#f2e4cb"},
+  cow:{name:"Cow",image:"cow-token"},
+  sheep:{name:"Sheep",image:"sheep-token"},
+};
+const items=["seed","herd","buckthorn","water","spade","burn"];
+const inventory={buckthorn:3};
+const penCapacity={cow:2,sheep:3};
+const buttons=new Map();
+for(const [index,id] of items.entries()){
+  const {name,label,image,color}=catalog[id];
+  const button=document.createElement("button");
+  button.className="slot";
+  button.dataset.item=id;
+  button.type="button";
+  button.setAttribute("aria-pressed","false");
+  button.setAttribute("aria-keyshortcuts",String(index+1));
+  button.style.setProperty("--slot-color",color);
+  button.title=name;
+  const thumbnail=id==="water"?'<img src="'+cloudArt+'" alt="" draggable="false">':image?'<img src="assets/'+image+'.webp" alt="" draggable="false">':iconMarkup(catalog[id].icon);
+  button.innerHTML='<kbd aria-hidden="true">'+(index+1)+'</kbd>'+thumbnail+'<span class="slot-label">'+label+'</span>';
+  if(id in inventory){
+    const quantity=document.createElement("span");
+    quantity.className="slot-count";
+    quantity.setAttribute("aria-hidden","true");
+    button.append(quantity);
+  }
+  hotbar.append(button);
+  buttons.set(id,button);
+}
+
+let world,meadow,buckthornModel;
+try{
   world=new Planet(canvas);
   meadow=new MeadowSimulation(world);
-} catch(error) {
+}catch(error){
   console.error(error);
+  world=null;
   $("#fallback").hidden=false;
-  document.querySelectorAll(".camera-tools button,.tools button").forEach(button=>button.disabled=true);
 }
 
-const initialTitle=$("#task-title").textContent;
-const initialDescription=$("#task-description").textContent;
-const touchOnly=matchMedia("(hover:none)").matches;
-const saplingReward=saplingSlots.length, plantAngle=.093;
-let tool="rotate", grassCover=0, shownPercent=-1;
-let saplingsLeft=0, plantModel=null, plantLoadError=false, plantLoad=null;
-let selectedSlot=null, trayDrag=null, skipSlotClick=null, meadowRun=0;
-let gesture=null, pinch=null, lastSpot=null;
-let guideStep=null;
+let selected=null,grassCover=0,revision=0;
+let gesture=null,drag=null,pinch=null,lastSpot=null,lastPointer=null,suppressClick=null;
+let toastTimer=null,sliding=false;
+const studyPrompt=$("#study-prompt"),pen=$("#animal-pen");
+const nextStep=$("#next-step"),guideProgress=$("#guide-progress");
 const touches=new Map();
 
-if(meadow){
-  meadow.motion.onChange=()=>{
-    syncFieldButtons();
-    refreshTip();
-  };
-  meadow.onTime=updateTimePanel;
-  meadow.onGraze=message=>{
-    fieldFeedback(message);
-    markFieldTask("grazing");
-  };
-}
-
-function setText(selector,text) {
+function textAt(selector,value){
   const element=$(selector);
-  if(element.textContent!==text)element.textContent=text;
+  if(element.textContent!==value)element.textContent=value;
 }
 
-function refreshTip() {
-  const zoom=touchOnly?"Pinch to zoom":"Scroll to zoom";
+function notice(message){
+  clearTimeout(toastTimer);
+  textAt("#field-feedback",message);
+  $("#field-feedback").hidden=false;
+  toastTimer=setTimeout(()=>$("#field-feedback").hidden=true,3900);
+}
+
+function syncButtons(){
+  for(const [id,button] of buttons){
+    const count=inventory[id];
+    button.disabled=!world||count===0||!toolAvailable(id);
+    button.setAttribute("aria-label",count===undefined?catalog[id].name:catalog[id].name+", "+count+" available");
+    button.setAttribute("aria-pressed",id===selected);
+    if(count!==undefined)button.querySelector(".slot-count").textContent=count;
+  }
+  const pruning=!!meadow?.motion.activity;
+  for(const id of ["year-range","play-time","next-step","manage"])$("#"+id).disabled=!world||pruning;
+  $("#soil-view").disabled=!world;
+  $("#orbit").setAttribute("aria-pressed",selected===null);
+  $("#manage").setAttribute("aria-pressed",selected==="prune");
+  $("#recall-herd").hidden=!meadow?.pasture.animals.length||!meadow.pasture.layer.visible||!!stage()&&stage()!=="graze";
+  for(const button of pen.querySelectorAll("[data-animal]")){
+    const left=animalsLeft(button.dataset.animal);
+    button.disabled=!world||!left||(stage()&&meadow.pasture.animals.length>=2);
+    button.querySelector("span").textContent=left+" available";
+  }
+}
+
+function animalsLeft(species){
+  const deployed=meadow?.pasture.animals.filter(animal=>animal.cattle===(species==="cow")).length??0;
+  return penCapacity[species]-deployed;
+}
+
+function refreshTip(){
   const select=touchOnly?"Tap":"Click";
-  if(meadow?.motion.activity){
-    setText("#scene-tip",meadow.motion.activity.label+"…");
-    return;
-  }
-  if(trayDrag?.active){
-    setText("#scene-tip",trayDrag.point?"Release to plant":"Drag onto the planet to plant");
-    return;
-  }
-  if(tool==="plant"){
-    setText("#scene-tip",plantModel?`${select} to plant · Drag to turn · ${zoom}`:"Loading sea buckthorn…");
-  }else if(tool==="graze"){
-    setText("#scene-tip",`${select} the planet to place the herd · Drag to turn`);
-  }else if(tool==="manage"){
-    setText("#scene-tip",`${select} an established shrub to prune · Drag to turn`);
-  }else if(plantLoadError&&saplingsLeft) setText("#scene-tip","Sea buckthorn could not load. Try picking up a sapling again.");
-  else if(tool==="rotate") setText("#scene-tip",world?.soilView?"Teal patches show enriched soil · Drag to turn":"Drag the planet to turn it · "+zoom);
-  else {
-    const turn=touchOnly?"Choose Rotate to turn":"Shift + drag to turn";
-    setText("#scene-tip",`Drag to sow · ${turn} · ${zoom}`);
-  }
-  canvas.style.cursor=tool==="rotate"?"grab":"crosshair";
+  let tip=touchOnly?"Drag to orbit · Pinch to zoom":"Drag to orbit · Scroll to zoom";
+  if(selected==="spade")tip=world.shrubHighlight.hovered?(drag?.active?"Release to uproot this sea buckthorn":select+" to uproot this sea buckthorn"):"Move the spade over a shrub";
+  else if(selected==="burn")tip="Choose where the fire begins on the globe";
+  else if(meadow?.recovery)tip=meadow.effects.caption;
+  else if(meadow?.motion.activity)tip="Pruning the shrub…";
+  else if(selected==="water")tip=drag?.active?(drag.target?"Release to water the seeds":"Drag the cloud to the pale ring"):select+" the seed bed to water it";
+  else if(drag?.active)tip=drag.target?"Release to place":"Move onto the planet, then release to place";
+  else if(selected==="seed")tip=touchOnly?"Paint grass · Two fingers orbit":"Paint grass · Right-drag to orbit";
+  else if(selected in penCapacity)tip=select+" a grass patch to place one "+selected;
+  else if(selected==="prune")tip=select+" an established shrub · Drag to orbit";
+  else if(selected==="buckthorn")tip=select+" to plant sea buckthorn · Drag to orbit";
+  else if(stage()==="uproot")tip="Drag Uproot to a shrub, or place Burn anywhere on the globe";
+  else if(world?.soilView)tip="Teal patches show enriched soil";
+  textAt("#scene-tip",tip);
 }
 
-function setTool(mode) {
-  if(!world) return;
-  if(mode==="brush")world.buildGrass();
-  tool=mode;
-  if(mode!=="plant")selectedSlot=null;
-  lastSpot=null;
-  world.brush(null);
-  $("#rotate").setAttribute("aria-pressed",mode==="rotate");
-  $("#brush").setAttribute("aria-pressed",mode==="brush");
-  $("#graze").setAttribute("aria-pressed",mode==="graze");
-  $("#manage").setAttribute("aria-pressed",mode==="manage");
-  saplingSlots.forEach(slot=>slot.setAttribute("aria-pressed",slot===selectedSlot));
-  refreshTip();
-}
-
-function setProgress() {
-  const percent=Math.floor(grassCover*100);
-  if(percent===shownPercent)return;
-  shownPercent=percent;
-  $("#progress").setAttribute("aria-valuenow",percent);
-  $("#progress span").style.width=percent+"%";
-  setText("#progress-value",percent+"%");
-  if(percent>=90&&percent<100) {
-    setText("#task-description","Turn the planet to find the last bare patches. Grass will spread into the smallest gaps.");
-  }
-  if(grassCover===1)complete();
-}
-
-function complete() {
-  setText("#progress-caption","Meadow sown");
-  workspace.dataset.phase="plant";
-  openFieldPanel("shrubs");
-  saplingsLeft=saplingReward;
-  $("#brush").hidden=true;
-  $("#shrub-lock").hidden=true;
-  $("#field-tasks").hidden=false;
-  tray.hidden=false;
-  updateSaplingCount();
-  updateGuide();
-  setTool("rotate");
-  gesture=null;
-  requestAnimationFrame(()=>{
-    if(grassCover===1){
-      rewardDialog.returnValue="";
-      rewardDialog.showModal();
-    }
+function loadShrub(){
+  return loadSeaBuckthorn().then(model=>{
+    buckthornModel=model;
+    if(meadow.pasture.animals.length)meadow.herdTemplate=model;
+    if(lastPointer&&(selected==="buckthorn"||drag?.id==="buckthorn"))showPlacement(...lastPointer,"buckthorn");
+    return model;
+  }).catch(error=>{
+    console.error(error);
+    notice("The seedling is loading. The field study will retry.");
+    return null;
   });
-  prepareSaplings();
 }
 
-function updateSaplingCount() {
-  setText("#sapling-count",saplingsLeft?`${saplingsLeft} left`:`${saplingReward} planted`);
-  setText("#plant-progress",`${saplingReward-saplingsLeft} / ${saplingReward}`);
-  $("#tray-tip").hidden=saplingsLeft===0;
+const fieldWindow=$("#rain-window"),windowAction=$("#rain-action");
+const bedControls=$("#bed-controls"),bedLeave=$("#bed-leave");
+let fieldObservation=null,windowExitTimer=null;
+function openIdentification(){
+  const card=$("#species-card");
+  if(stage()!=="identify"||!studyPlant||card.open)return;
+  card.showModal();
+  $("#id-continue").focus({preventScroll:true});
 }
-
-function prepareSaplings() {
-  if(!plantLoad){
-    plantLoadError=false;
-    plantLoad=loadSeaBuckthorn().then(model=>{
-      plantModel=model;
-      if(trayDrag?.active)updateTrayDrag(trayDrag.x,trayDrag.y);
-      else refreshTip();
-    },error=>{
-      console.error(error);
-      plantLoad=null;
-      plantLoadError=true;
-      if(tool==="plant")setTool("rotate");
-      else refreshTip();
-    });
+const observationCues={
+  raining:["Rain is falling on your seed bed."],
+  impact:["Watch the dark patch spread as water soaks into the soil."],
+  sprouting:["The seed coat is opening. Watch the first green blade unfold."],
+  grown:["Fresh shoots are opening across the seed bed."],
+  breeze:["Follow the brown seed. The grass bends as a gust passes through.","Watching the breeze…",true],
+  landed:["The seed has settled in a gap between the grass tufts.","Watch it take root"],
+  rooting:["A woody stem rises from the seed. Look for the narrow leaves opening along its sides.","Growing…",true],
+  rooted:["The seedling has taken root. Return to the meadow to see its field record.","View plant identification"],
+};
+function showObservationCue(cue){
+  const [caption,action,busy]=observationCues[cue];
+  if(stage()==="water"){textAt("#bed-caption",caption);return;}
+  textAt("#rain-caption",caption);
+  windowAction.textContent=action;windowAction.disabled=!!busy;
+}
+function setBedView(open){
+  $(".workspace").classList.toggle("seed-bed-view",open);
+  bedControls.hidden=!open;bedLeave.hidden=!open;
+  canvas.setAttribute("aria-label",open?"Rain and new grass on your planet. Drag to orbit, scroll to zoom, or press Escape to pause.":fieldCanvasLabel);
+}
+function openObservation(dropPoint){
+  const id=stage();
+  if(world.observation||!["water","arrival"].includes(id))return;
+  if(id==="water"&&(!seedBed||wateredAt!==null||!fieldObservation&&!dropPoint))return;
+  clearPreview();clearTimeout(promptTimer);
+  selected=null;
+  if(id==="water"){
+    $(".workspace").classList.remove("carrying-water");
+    skyCloud.hidden=true;
+    fieldObservation??=createFirstRain(world,seedBed,dropPoint,showObservationCue,()=>leaveObservation(true));
+    setBedView(true);
+  }else{
+    fieldWindow.showModal();
+    fieldObservation??=createWindArrival(world,arrivalPoint,buckthornModel,$("#rain-view"),showObservationCue);
   }
-  return plantLoad;
+  world.observation=fieldObservation;
+  fieldObservation.resume();
+  const focus=id==="water"?canvas:(windowAction.disabled?$("#rain-close"):windowAction);
+  focus.focus({preventScroll:true});
 }
-
-function chooseSapling(slot) {
-  if(slot.disabled)return;
-  if(selectedSlot===slot){
-    setTool("rotate");
+function leaveObservation(advance=false){
+  const shot=world.observation;
+  if(!shot||fieldWindow.hasAttribute("data-leaving")||bedLeave.disabled)return;
+  const committed=shot.complete&&advance===true;
+  if(stage()==="water"){
+    shot.suspend();
+    finishObservationExit(shot,committed);
     return;
   }
-  selectedSlot=slot;
-  prepareSaplings();
-  setTool("plant");
-  canvas.focus({preventScroll:true});
+  world.observation=null;
+  shot.cancelDrag?.();
+  fieldWindow.setAttribute("data-leaving","");
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)finishObservationExit(shot,committed);
+  else windowExitTimer=setTimeout(()=>finishObservationExit(shot,committed),240);
 }
-
-async function plant(point,slot=selectedSlot) {
-  if(!point||!slot||slot.disabled)return;
-  const run=meadowRun;
-  await prepareSaplings();
-  if(run!==meadowRun||!plantModel||slot.disabled)return;
-  world.plantSapling(plantModel,point);
-  slot.disabled=true;
-  saplingsLeft--;
-  updateSaplingCount();
-  if(selectedSlot===slot)setTool("rotate");
-  if(!saplingsLeft){
-    workspace.dataset.phase="observe";
-    syncFieldButtons();
-    markFieldTask("plant");
-  }
-}
-
-function markFieldTask(name) {
-  const item=$("#task-"+name);
-  if(!item.hasAttribute("data-done")){
-    item.dataset.done="";
-    updateGuide();
-  }
-}
-
-function updateGuide() {
-  const sowing=workspace.dataset.phase==="sow";
-  guideStep=sowing?null:guideSteps.find(({id})=>!$("#task-"+id).hasAttribute("data-done"));
-  for(const {id} of guideSteps){
-    const row=$("#task-"+id);
-    if(guideStep?.id===id)row.setAttribute("aria-current","step");
-    else row.removeAttribute("aria-current");
-  }
-  fieldTabs.forEach(tab=>tab.toggleAttribute("data-next",tab.dataset.panel===guideStep?.panel));
-  nextStep.hidden=!sowing&&!guideStep;
-  if(sowing){
-    setText("#task-title",initialTitle);
-    setText("#task-description",initialDescription);
-    setText("#next-step-label","Select Sow");
+function finishObservationExit(shot,committed){
+  windowExitTimer=null;
+  world.observation=null;
+  if(fieldWindow.open)fieldWindow.close();
+  if(!bedControls.hidden){setBedView(false);bedLeave.disabled=false;}
+  fieldWindow.removeAttribute("data-leaving");
+  if(committed){
+    if(stage()==="arrival"){
+      shot.dispose();fieldObservation=null;
+      studyPlant=world.plantSapling(buckthornModel,arrivalPoint,meadow.year);
+      world.showDirection(arrivalPoint,studyView());
+      nextChapter("arrival");
+    }else{
+      wateredAt=world.clock.getElapsedTime();
+      world.prepareMeadow(seedBed);
+      shot.growIntoMeadow(0);
+      textAt("#task-title","Watch the meadow fill in");
+      textAt("#task-description","New blades are spreading out from your seed bed.");
+    }
   }else{
-    setText("#task-title",guideStep?.title??"Field tasks complete.");
-    setText("#task-description",guideStep?.text??"Keep experimenting with the meadow.");
-    if(guideStep)setText("#next-step-label",guideStep.button);
+    toggleGuide(true);
+    nextStep.textContent={arrival:"Resume the seed’s journey",water:"Resume watering"}[stage()];
   }
+  world.render();
+  updateStudyTools();updateReading();updateSowHint();refreshTip();
+  if(!document.querySelector("dialog[open]"))(committed?canvas:nextStep).focus({preventScroll:true});
+}
+function resetObservation(){
+  if($("#species-card").open)$("#species-card").close();
+  clearTimeout(windowExitTimer);windowExitTimer=null;
+  if(fieldWindow.open)fieldWindow.close();
+  if(!bedControls.hidden)setBedView(false);
+  bedLeave.disabled=false;
+  fieldWindow.removeAttribute("data-leaving");
+  world.observation=null;
+  fieldObservation?.dispose();
+  fieldObservation=null;
+}
+function advanceObservation(){
+  if(fieldWindow.hasAttribute("data-leaving")||bedLeave.disabled)return;
+  if(world.observation?.complete)leaveObservation(true);
+  else world.observation?.act();
 }
 
-function focusCanvas() {
-  canvas.scrollIntoView({block:"nearest"});
-  canvas.focus({preventScroll:true});
+function choose(id){
+  if(!world||!toolAvailable(id)||id in inventory&&inventory[id]===0)return;
+  if(id==="water"&&fieldObservation){openObservation();return;}
+  if(id==="herd"){
+    choose(null);
+    if(!pen.open)pen.showModal();
+    return;
+  }
+  if(id in penCapacity&&animalsLeft(id)<=0)return;
+  selected=id;
+  $(".workspace").classList.toggle("carrying-water",id==="water");
+  canvas.style.cursor=id?"crosshair":"grab";
+  lastSpot=null;
+  clearPreview();
+  if(id){
+    if(world.soilView)toggleSoil(false);
+    if(id==="seed"&&!stage())world.buildGrass();
+    if(id==="buckthorn"&&!buckthornModel)loadShrub();
+  }
+  syncButtons();
+  refreshTip();
+  updateSowHint();
 }
 
-function setSoilView(active) {
+function togglePanel(id,open,trigger){
+  $(id).hidden=!open;
+  $(trigger).setAttribute("aria-expanded",open);
+}
+
+function toggleGuide(open){
+  if(open&&!meadow?.fieldTimeline&&matchMedia("(max-width:740px)").matches)togglePanel("#panel-time",false,"#time-toggle");
+  togglePanel("#field-guide",open,"#guide-toggle");
+  updateSowHint();
+}
+
+function toggleTime(open){
+  if(open&&matchMedia("(max-width:740px)").matches)toggleGuide(false);
+  togglePanel("#panel-time",open,"#time-toggle");
+}
+
+function toggleSoil(active){
   world.soilView=active;
   $("#soil-view").setAttribute("aria-pressed",active);
-  $("#soil-notes").hidden=!active;
   $("#soil-legend").hidden=!active;
-  updateTimePanel();
+  $("#soil-notes").hidden=!active;
+  updateTime();
   refreshTip();
 }
 
-function followGuide() {
-  if(!world)return;
-  if(!guideStep){setTool("brush");focusCanvas();return;}
-  const {id,panel}=guideStep;
-  openFieldPanel(panel);
-  if(id==="plant"){
-    saplingSlots.find(button=>!button.disabled)?.focus();
+function updateTime(){
+  const {year,playing}=meadow;
+  if(year>HERD_LAST_YEAR&&!$("#field-feedback").hidden&&$("#field-feedback").textContent.includes("herd"))$("#field-feedback").hidden=true;
+  if(meadow.fieldTimeline)syncTimelineChapter(year);
+  if(!stage()&&buttons.get("herd").hidden!==!toolAvailable("herd"))updateStudyTools();
+  if(Math.abs(Number(yearRange.value)-year)>.001)yearRange.value=year;
+  yearRange.style.setProperty("--timeline-fill",((year-yearRange.min)/(yearRange.max-yearRange.min)*100)+"%");
+  textAt("#year-value","Year "+year.toFixed(1));
+  textAt("#play-time",playing?"Pause timeline":year>=meadow.playbackLimit?"Replay timeline":"Play timeline");
+  const age=Math.max(0,...world.saplings.children.filter(shrub=>shrub.visible).map(shrub=>shrub.userData.age));
+  const growth=age>=3.8?"Ripe orange fruit":age>=2.2?"Fruit forming":year>=.35?"Branches and leaves growing":"Young saplings";
+  if(!meadow.fieldTimeline)textAt("#growth-stage",meadow.dryCover>=12?"Desertification spreading":meadow.highestMound>.13?"Raised soil under shrubs":year>=28?"Long dry spell":growth);
+  textAt("#dry-cover",meadow.dryCover+"%");
+  textAt("#enriched-cover",meadow.enrichedCover+"% enriched");
+  textAt("#enrichment-reading",meadow.enrichedCover+"%");
+  textAt("#mound-height",Math.round(meadow.highestMound*100)+" cm");
+  updateReading();
+}
+
+function paint(point){
+  if(stage()){
+    if(stage()==="sow"&&point){
+      seedBed=point.clone();
+      world.scatterSeeds(seedBed);
+      nextChapter("sow");
+    }
     return;
   }
-  setSoilView(id==="enrich");
-  const shrub=world.saplings.children.find(item=>item.visible);
-  if(shrub&&(id==="enrich"||id==="time"||id==="management")){
-    world.showDirection(shrub.userData.direction,id==="management"?FRONT:undefined);
-  }
-  if(id==="enrich")meadow.previewYear(3.1);
-  if(id==="time")meadow.previewYear(4.5);
-  if(id==="grazing")setTool("graze");
-  if(id==="management")setTool("manage");
-  if(id==="desert")meadow.previewYear(LAST_YEAR);
-  focusCanvas();
-}
-
-function fieldFeedback(message) {
-  $("#field-feedback").hidden=false;
-  setText("#field-feedback",message);
-}
-
-function syncFieldButtons() {
-  const isMoving=!!meadow?.motion.activity;
-  if(isMoving)world.brush(null);
-  workspace.toggleAttribute("data-running",isMoving);
-  nextStep.disabled=!world||isMoving;
-  fieldButtons.forEach(button=>button.disabled=workspace.dataset.phase!=="observe"||isMoving);
-}
-
-function updateTimePanel() {
-  const {year,playing}=meadow;
-  if(playing||Math.abs(Number(yearRange.value)-year)>.001)yearRange.value=year;
-  yearRange.style.setProperty("--timeline-fill",`${year/LAST_YEAR*100}%`);
-  setText("#year-value",`Year ${year.toFixed(1)}`);
-  setText("#play-time",playing?"Pause timeline":year===LAST_YEAR?"Replay timeline":"Play timeline");
-  const age=Math.max(0,...world.saplings.children.filter(shrub=>shrub.visible).map(shrub=>shrub.userData.age));
-  let stage=age>=3.8?"Ripe orange fruit":age>=2.2?"Fruit forming":age>=.35?"Branches and leaves growing":"Young saplings";
-  if(year>=28)stage=meadow.dryCover>=12?"Desertification spreading":meadow.dryCover>0?"Dry soil becoming exposed":"Long dry spell";
-  setText("#dry-cover",`${meadow.dryCover}%`);
-  setText("#enriched-cover",`${meadow.enrichedCover}% enriched`);
-  setText("#growth-stage",stage);
-  if(world.soilView&&meadow.enrichedCover>0&&!meadow.preview)markFieldTask("enrich");
-  if(age>=3.8&&!$("#task-time").hasAttribute("data-done"))markFieldTask("time");
-  if(meadow.dryCover>=12&&!$("#task-desert").hasAttribute("data-done"))markFieldTask("desert");
-}
-
-function updateHerdPanel() {
-  const active=meadow.pasture.animals.length>0;
-  setText("#graze",active?"Move herd":"Release herd");
-  setText("#herd-count",active?"2 cattle and 3 sheep on the planet":"2 cattle and 3 sheep");
-  $("#recall-herd").hidden=!active;
-}
-
-function openFieldPanel(name) {
-  for(const tab of fieldTabs){
-    const current=tab.dataset.panel===name;
-    tab.setAttribute("aria-pressed",current);
-    $("#"+tab.getAttribute("aria-controls")).hidden=!current;
-  }
-  if(name!=="time"&&world?.soilView)setSoilView(false);
-  if(tool!=="brush")setTool("rotate");
-}
-
-function chooseFieldTool(mode) {
-  if(world.soilView)setSoilView(false);
-  setTool(tool===mode?"rotate":mode);
-  if(tool!=="rotate")focusCanvas();
-}
-
-function fieldAction(point,shrub) {
-  if(meadow.motion.activity)return;
-  if(tool==="graze"&&point){
-    meadow.releaseHerd(point,plantModel);
-    updateHerdPanel();
-    setTool("rotate");
-    fieldFeedback("The cattle and sheep are looking for grass.");
-  }else if(tool==="manage"){
-    const target=shrub??meadow.shrubNear(point);
-    if(meadow.prune(target)){
-      fieldFeedback("Shrub pruned. More light reaches the grass underneath.");
-      markFieldTask("management");
-    }else{
-      fieldFeedback(target?"This sapling is still young. Move the time slider forward before pruning.":"Choose a shrub to prune.");
-    }
-  }
-}
-
-function showToolRing(point) {
-  if(meadow.motion.activity)return;
-  if(tool==="plant"&&plantModel)world.brush(point,plantAngle);
-  if(tool==="graze")world.brush(point,GRAZE_ANGLE,.27);
-  if(tool==="manage")world.brush(meadow.shrubNear(point)?.userData.direction??null,.19,.25);
-}
-
-function dropPoint(x,y) {
-  return document.elementFromPoint(x,y)===canvas?world.pick(x,y):null;
-}
-
-function updateTrayDrag(x,y) {
-  const point=dropPoint(x,y);
-  Object.assign(trayDrag,{x,y,point});
-  dragImage.style.transform=`translate3d(${x}px,${y}px,0)`;
-  dragImage.hidden=!!(point&&plantModel);
-  world.previewSapling(plantModel,point);
-  world.brush(point,plantAngle);
-  refreshTip();
-}
-
-function endTrayDrag(event) {
-  if(!trayDrag||(event&&event.pointerId!==trayDrag.pointerId))return;
-  const {active,slot,pointerId}=trayDrag;
-  trayDrag=null;
-  if(slot.hasPointerCapture(pointerId))slot.releasePointerCapture(pointerId);
-  if(!active)return;
-  skipSlotClick=slot;
-  slot.classList.remove("is-dragged");
-  dragImage.hidden=true;
-  world.previewSapling(null,null);
-  world.brush(null);
-  refreshTip();
-  if(event?.type==="pointerup")plant(dropPoint(event.clientX,event.clientY),slot);
-}
-
-tray.addEventListener("pointerdown",event=>{
-  const slot=event.target.closest(".sapling-slot");
-  if(!world||!slot||slot.disabled||event.button!==0||trayDrag||touches.size)return;
-  skipSlotClick=null;
-  const {pointerId,clientX:x,clientY:y}=event;
-  trayDrag={slot,pointerId,x,y,active:false};
-  slot.setPointerCapture(pointerId);
-});
-
-tray.addEventListener("pointermove",event=>{
-  if(trayDrag?.pointerId!==event.pointerId)return;
-  const {clientX:x,clientY:y}=event;
-  if(!trayDrag.active){
-    if(Math.hypot(x-trayDrag.x,y-trayDrag.y)<6)return;
-    setTool("rotate");
-    trayDrag.active=true;
-    trayDrag.slot.classList.add("is-dragged");
-    prepareSaplings();
-  }
-  updateTrayDrag(x,y);
-});
-
-for(const type of ["pointerup","pointercancel","lostpointercapture"])tray.addEventListener(type,endTrayDrag);
-tray.addEventListener("click",event=>{
-  const slot=event.target.closest(".sapling-slot");
-  if(slot&&(event.detail===0||slot!==skipSlotClick))chooseSapling(slot);
-  skipSlotClick=null;
-});
-window.addEventListener("blur",()=>endTrayDrag());
-document.addEventListener("keydown",event=>{
-  if(event.key==="Escape"&&trayDrag){
-    event.preventDefault();
-    endTrayDrag();
-  }
-});
-
-function stroke(point) {
   if(!point||grassCover===1){lastSpot=null;return;}
   let distance=lastSpot?angleBetween(lastSpot,point):0;
   if(distance>1.5){lastSpot=null;distance=0;}
   if(lastSpot&&distance<.014)return;
   const steps=lastSpot?Math.max(1,Math.ceil(distance/.063)):1;
   for(let i=1;i<=steps;i++){
-    const dot=lastSpot?lastSpot.clone().lerp(point,i/steps).normalize():point;
-    grassCover=world.sow(dot);
+    grassCover=world.sow(lastSpot?lastSpot.clone().lerp(point,i/steps).normalize():point);
     if(grassCover===1)break;
   }
   lastSpot=point;
-  setProgress();
 }
 
-function touchPair() {
-  const [a,b]=[...touches.values()];
-  return {x:(a.x+b.x)*.5,y:(a.y+b.y)*.5,length:Math.hypot(a.x-b.x,a.y-b.y)};
+
+async function useItem(id,point,shrub){
+  if(!id||!toolAvailable(id))return;
+  if(id==="water"){
+    if(overSeedBed(point))openObservation(point);
+    else notice("Place the cloud inside the ring around the seeds.");
+    return;
+  }
+  if(id==="spade"||id==="burn"){
+    const target=id==="spade"?(shrub??meadow.shrubNear(point,.065)):meadow.stand.find(plant=>plant.visible);
+    if(!target||!point&&id==="burn"){
+      notice(id==="spade"?"Place the spade at the base of a shrub.":"Choose a point on the globe.");return;
+    }
+    if(meadow.uproot(target,id==="burn"?meadow.stand:[],id,id==="spade"?target.userData.direction:point)){
+      recordRestoration(id);
+      uprooted=true;meadow.holdGrazing=true;
+      choose(null);toggleGuide(false);updateStudyTools();updateReading();refreshTip();
+    }
+    return;
+  }
+  if(id==="prune"){
+    if(meadow.motion.activity)return;
+    const target=shrub??meadow.shrubNear(point);
+    if(meadow.prune(target,()=>{notice("More light reaches the grass. The soil mound stays in place.");}))return;
+    notice(target?"Advance time to grow this shrub before pruning.":"Choose a mature shrub on the planet.");
+    return;
+  }
+  if(!point)return;
+  if(id==="seed"){paint(point);return;}
+  if(id in penCapacity){
+    if(animalsLeft(id)<=0||stage()&&meadow.pasture.animals.length>=2)return;
+    meadow.releaseAnimal(point,id,buckthornModel??null);
+    if(!buckthornModel)loadShrub();
+    choose(null);
+    notice(stage()==="graze"?"Watch the "+id+" lower its head. The grass shortens where it feeds.":"One "+id+" placed.");
+    return;
+  }
+  if(id!=="buckthorn"||inventory.buckthorn===0)return;
+  const run=revision;
+  const model=buckthornModel??await loadShrub();
+  if(run!==revision||!model||inventory[id]===0)return;
+  world.plantSapling(model,point,meadow.year);
+  inventory[id]--;
+  if(inventory[id]===0&&selected===id)choose(null);
+  else syncButtons();
 }
 
+function surfaceAt(x,y){
+  return document.elementFromPoint(x,y)===canvas?world.pick(x,y):null;
+}
+
+function overSeedBed(point){
+  return !!point&&!!seedBed&&point.dot(seedBed)>=Math.cos(SEED_ANGLE+.025);
+}
+
+function clearPreview(){
+  if(!world)return;
+  cursor.hidden=true;
+  skyCloud.style.removeProperty("left");skyCloud.style.removeProperty("top");
+  world.sowHint.material.color.setHex(0xfff4cf);
+  world.shrubHighlight.setTarget(null);
+  if(selected==="spade")refreshTip();
+  meadow.effects.previewSpade(null);
+  world.brush(null);
+  world.previewSapling(null,null);
+  meadow.pasture.showPreview(null);
+}
+
+function showPlacement(x,y,id){
+  if(!world||!id){clearPreview();return;}
+  const onCanvas=document.elementFromPoint(x,y)===canvas;
+  const shrub=id==="spade"&&onCanvas?world.pickShrub(x,y):null;
+  const point=shrub?.userData.direction??surfaceAt(x,y);
+  if(id==="water"){
+    const rect=canvas.getBoundingClientRect();
+    skyCloud.style.left=(x-rect.left)+"px";
+    skyCloud.style.top=(y-rect.top-skyCloud.offsetHeight*.36)+"px";
+    const over=overSeedBed(point);
+    world.sowHint.material.color.setHex(over?0x90f2ce:0xfff4cf);
+    if(drag)drag.target=over;
+    refreshTip();return;
+  }
+  const target=id==="spade"?shrub??meadow.shrubNear(point,.065):point;
+  world.shrubHighlight.setTarget(id==="spade"?target:null);
+  meadow.effects.previewSpade(id==="spade"?point:null);
+  const template=id==="buckthorn"?buckthornModel:null;
+  lastPointer=[x,y];
+  if(drag?.active)drag.target=!!target;
+  if(drag?.active||id==="spade")refreshTip();
+  if(id!=="prune"&&!(id==="spade"&&target)&&(drag?.active||onCanvas)){
+    const item=catalog[id];
+    const image=$("#placement-image");
+    image.hidden=!item.image;
+    if(item.image)image.src="assets/"+item.image+".webp";
+    $("#placement-symbol").hidden=!item.icon;
+    if(item.icon)$("#placement-symbol").innerHTML=iconMarkup(item.icon);
+    textAt("#placement-name",item.name);
+    textAt("#placement-hint",id==="spade"?(target?"Release or click to dig":"Aim at a shrub"):id==="burn"?(target?"Start the burn here":"Move onto the globe"):!point?"Move onto the planet":drag?.active?"Release to place":id==="seed"?"Drag to sow":touchOnly?"Tap to place":"Click to place");
+    cursor.hidden=false;
+    cursor.toggleAttribute("data-target",!!target);
+    const left=clamp(x+15,5,Math.max(5,innerWidth-cursor.offsetWidth-7));
+    const top=clamp(y-54,6,Math.max(6,innerHeight-cursor.offsetHeight-7));
+    cursor.style.transform="translate3d("+left+"px,"+top+"px,0)";
+  }else cursor.hidden=true;
+  world.previewSapling(template,point);
+  meadow.pasture.showPreview(id in penCapacity?point:null,id);
+  world.brush(id==="spade"&&target?null:id==="prune"?meadow.shrubNear(point)?.userData.direction??null:point,
+    id==="seed"?SEED_ANGLE:.105,id==="seed"?.11:.27);
+}
+
+function beginToolDrag(event){
+  const button=event.target.closest(".slot,#sky-cloud");
+  if(!world||!button||button.dataset.item==="herd"||button.hidden||button.disabled||event.button!==0||drag||touches.size)return;
+  if(button.dataset.item==="water"&&fieldObservation)return;
+  suppressClick=null;
+  drag={id:button.dataset.item,button,pointerId:event.pointerId,x:event.clientX,y:event.clientY,active:false};
+  button.setPointerCapture(drag.pointerId);
+}
+function moveToolDrag(event){
+  if(drag?.pointerId!==event.pointerId)return;
+  if(!drag.active){
+    if(Math.hypot(event.clientX-drag.x,event.clientY-drag.y)<6)return;
+    drag.active=true;
+    drag.button.classList.add("is-dragging");
+    choose(drag.id);
+  }
+  showPlacement(event.clientX,event.clientY,drag.id);
+}
+function endDrag(event){
+  if(!drag||event&&event.pointerId!==drag.pointerId)return;
+  const {button,id,active,pointerId}=drag;
+  drag=null;
+  if(button.hasPointerCapture(pointerId))button.releasePointerCapture(pointerId);
+  if(!active)return;
+  suppressClick=button;
+  button.classList.remove("is-dragging");
+  const point=event?.type==="pointerup"?surfaceAt(event.clientX,event.clientY):null;
+  clearPreview();
+  const shrub=id==="spade"&&event?.type==="pointerup"&&document.elementFromPoint(event.clientX,event.clientY)===canvas?world.pickShrub(event.clientX,event.clientY):null;
+  if(id==="water"&&!overSeedBed(point)){
+    choose(null);
+    if(event?.type==="pointerup")notice("Drag the cloud into the ring around the seeds.");
+  }else if(point||shrub)useItem(id,point,shrub);
+  else choose(null);
+  refreshTip();
+}
+function pickTool(event){
+  const button=event.target.closest(".slot,#sky-cloud");
+  if(!button||button.disabled)return;
+  if(button===suppressClick&&event.detail!==0){suppressClick=null;return;}
+  choose(selected===button.dataset.item?null:button.dataset.item);
+  if(!pen.open&&!world.observation)canvas.focus({preventScroll:true});
+}
+for(const source of [hotbar,skyCloud]){
+  source.addEventListener("pointerdown",beginToolDrag);
+  source.addEventListener("pointermove",moveToolDrag);
+  for(const name of ["pointerup","pointercancel","lostpointercapture"])source.addEventListener(name,endDrag);
+  source.addEventListener("click",pickTool);
+}
+
+function touchPair(){
+  const [a,b]=touches.values();
+  return {x:(a.x+b.x)/2,y:(a.y+b.y)/2,length:Math.hypot(a.x-b.x,a.y-b.y)};
+}
 canvas.addEventListener("contextmenu",event=>event.preventDefault());
 canvas.addEventListener("pointerdown",event=>{
-  if(!world||trayDrag)return;
+  if(!world||fieldWindow.open||drag)return;
   const x=event.clientX,y=event.clientY;
   touches.set(event.pointerId,{x,y});
   canvas.setPointerCapture(event.pointerId);
@@ -443,182 +525,269 @@ canvas.addEventListener("pointerdown",event=>{
   if(touches.size>1){
     gesture=null;
     pinch=touchPair();
-    world.brush(null);
+    clearPreview();
     return;
   }
-  const wantsTurn=tool==="rotate"||event.shiftKey||event.button!==0;
-  const point=wantsTurn?null:world.pick(x,y);
-  const shrub=!wantsTurn&&!point&&tool==="manage"?world.pickShrub(x,y):null;
-  const turn=wantsTurn||(!point&&!shrub);
-  const pendingTouch=!turn&&tool==="brush"&&event.pointerType==="touch";
-  const pendingAction=!turn&&tool!=="brush";
-  gesture={x,y,turn,pendingTouch,pendingAction};
+  const point=world.pick(x,y);
+  const manageHit=["prune","spade"].includes(selected)&&!point&&world.pickShrub(x,y);
+  const turn=!selected||event.shiftKey||event.button!==0||!point&&!manageHit;
+  gesture={x,y,turn,id:selected,seedPending:!turn&&selected==="seed"&&event.pointerType==="touch"};
   if(turn){
     canvas.style.cursor="grabbing";
-    world.brush(null);
-  }else if(tool==="brush"&&!pendingTouch){
-    stroke(point);
-    if(tool==="brush")world.brush(point);
-  }else if(pendingAction){
-    showToolRing(point);
+    clearPreview();
+  }else{
+    if(selected==="seed"&&!gesture.seedPending)paint(point);
+    showPlacement(x,y,selected);
   }
 });
-
 canvas.addEventListener("pointermove",event=>{
-  if(!world||trayDrag?.active)return;
+  if(!world||fieldWindow.open||drag?.active)return;
   const x=event.clientX,y=event.clientY;
+  lastPointer=[x,y];
   if(touches.has(event.pointerId))touches.set(event.pointerId,{x,y});
   if(touches.size>1){
     const pair=touchPair();
-    if(pinch&&pair.length>0&&pinch.length>0){
+    if(pinch&&pinch.length>0&&pair.length>0){
       world.dragTurn(pinch.x,pinch.y,pair.x,pair.y);
       world.zoom(pair.length/pinch.length);
     }
     pinch=pair;
     return;
   }
-  if(gesture?.pendingAction&&Math.hypot(x-gesture.x,y-gesture.y)>=6){
-    gesture.pendingAction=false;
+  if(gesture&&!gesture.turn&&gesture.id!=="seed"&&Math.hypot(x-gesture.x,y-gesture.y)>=6){
     gesture.turn=true;
+    clearPreview();
     canvas.style.cursor="grabbing";
-    world.brush(null);
   }
   if(gesture?.turn){
     world.dragTurn(gesture.x,gesture.y,x,y);
     gesture.x=x;gesture.y=y;
     return;
   }
-  if(tool==="rotate")return;
-  if(tool!=="brush"){
-    showToolRing(world.pick(x,y));
-    return;
-  }
-  if(gesture?.pendingTouch){
-    if(Math.hypot(x-gesture.x,y-gesture.y)<5)return;
-    stroke(world.pick(gesture.x,gesture.y));
-    gesture.pendingTouch=false;
-  }
-  const point=world.pick(x,y);
-  if(gesture)stroke(point);
-  if(tool==="brush")world.brush(point);
-});
-
-function endPointer(event) {
-  if(!world)return;
-  if(event.type==="pointerup"){
-    if(tool==="brush"&&gesture?.pendingTouch)stroke(world.pick(event.clientX,event.clientY));
-    if(gesture?.pendingAction){
-      const {clientX:x,clientY:y}=event;
-      const point=world.pick(x,y);
-      if(tool==="plant")plant(point);
-      else fieldAction(point,tool==="manage"?world.pickShrub(x,y):null);
+  if(gesture?.id==="seed"){
+    if(gesture.seedPending){
+      if(Math.hypot(x-gesture.x,y-gesture.y)<5)return;
+      paint(world.pick(gesture.x,gesture.y));
+      gesture.seedPending=false;
     }
+    paint(surfaceAt(x,y));
+  }
+  showPlacement(x,y,selected);
+});
+function endPointer(event){
+  if(!world||fieldWindow.open)return;
+  if(event.type==="pointerup"&&gesture&&!gesture.turn&&(gesture.id!=="seed"||gesture.seedPending)){
+    const {clientX:x,clientY:y}=event;
+    useItem(gesture.id,surfaceAt(x,y),["prune","spade"].includes(gesture.id)&&document.elementFromPoint(x,y)===canvas?world.pickShrub(x,y):null);
   }
   touches.delete(event.pointerId);
   gesture=null;pinch=null;lastSpot=null;
-  if(event.pointerType!=="mouse")world.brush(null);
-  refreshTip();
+  canvas.style.cursor=selected?"crosshair":"grab";
+  if(event.pointerType==="mouse"&&selected)showPlacement(event.clientX,event.clientY,selected);
+  else clearPreview();
 }
-
-canvas.addEventListener("pointerup",endPointer);
-canvas.addEventListener("pointercancel",endPointer);
-canvas.addEventListener("lostpointercapture",event=>{
-  if(touches.has(event.pointerId))endPointer(event);
-});
-canvas.addEventListener("pointerleave",()=>{if(world&&!touches.size&&!trayDrag?.active)world.brush(null);});
+for(const name of ["pointerup","pointercancel"])canvas.addEventListener(name,endPointer);
+canvas.addEventListener("lostpointercapture",event=>{if(touches.has(event.pointerId))endPointer(event);});
+canvas.addEventListener("pointerleave",()=>{if(!touches.size&&!drag)clearPreview();});
 canvas.addEventListener("wheel",event=>{
   if(!world)return;
   event.preventDefault();
+  if(fieldWindow.open)return;
   world.zoom(Math.exp(-clamp(event.deltaY,-170,170)*.00165));
+  if(selected)showPlacement(event.clientX,event.clientY,selected);
 },{passive:false});
 canvas.addEventListener("keydown",event=>{
   if(!world)return;
-  const move={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[event.key];
-  if(move){
-    event.preventDefault();
-    world.turnKey(...move);
-    if(tool!=="rotate"){
-      const normal=FRONT.clone().applyQuaternion(world.planet.quaternion.clone().invert());
-      if(tool==="brush")world.brush(normal);
-      else showToolRing(normal);
-    }
-  }else if(event.key==="Enter"||event.key===" "){
-    if(tool==="rotate")return;
+  if(fieldWindow.open)return;
+  const moves={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};
+  if(moves[event.key]){event.preventDefault();world.turnKey(...moves[event.key]);}
+  else if((event.key==="Enter"||event.key===" ")&&selected&&!event.repeat){
     event.preventDefault();
     const point=FRONT.clone().applyQuaternion(world.planet.quaternion.clone().invert());
-    if(tool==="plant"){
-      if(!event.repeat)plant(point);
-      if(tool==="plant"&&plantModel)world.brush(point,plantAngle);
-    }else if(tool==="brush"){
-      stroke(point);
-      if(tool==="brush")world.brush(point);
-    }else if(!event.repeat)fieldAction(point);
+    useItem(selected,selected==="water"?seedBed:point);
   }else if(event.key==="+"||event.key==="="){
     event.preventDefault();world.zoom(1.25);
   }else if(event.key==="-"){
     event.preventDefault();world.zoom(.8);
   }
 });
-
-$("#rotate").addEventListener("click",()=>setTool("rotate"));
-$("#brush").addEventListener("click",()=>setTool("brush"));
-nextStep.addEventListener("click",followGuide);
-$("#soil-view").addEventListener("click",()=>setSoilView(!world.soilView));
-for(const tab of fieldTabs)tab.addEventListener("click",()=>openFieldPanel(tab.dataset.panel));
-yearRange.addEventListener("input",()=>meadow.scrub(Number(yearRange.value)));
-$("#play-time").addEventListener("click",()=>meadow.togglePlayback());
-$("#graze").addEventListener("click",()=>chooseFieldTool("graze"));
-$("#recall-herd").addEventListener("click",()=>{
-  meadow.pasture.clear();
-  updateHerdPanel();
-  setTool("rotate");
-  $("#graze").focus();
-  fieldFeedback("Herd recalled. Short grass can regrow, though heavily used patches dry out over time.");
+document.addEventListener("keydown",event=>{
+  if(!bedControls.hidden&&event.key==="Escape"){event.preventDefault();leaveObservation();return;}
+  if(!world||world.observation||document.querySelector("dialog[open]"))return;
+  if(event.key==="Escape"){endDrag();choose(null);}
+  if(event.target.matches("input,textarea,select")||event.ctrlKey||event.metaKey||event.altKey)return;
+  const item=items[Number(event.key)-1];
+  if(item&&toolAvailable(item)&&/^[1-6]$/.test(event.key)){event.preventDefault();choose(item);if(!pen.open)canvas.focus({preventScroll:true});}
 });
-$("#manage").addEventListener("click",()=>chooseFieldTool("manage"));
-rewardDialog.addEventListener("close",()=>{
-  if(rewardDialog.returnValue==="plant"){
-    saplingSlots[0].focus({preventScroll:true});
-  }else{
-    $("#rotate").focus();
+window.addEventListener("blur",()=>{
+  world?.observation?.cancelDrag?.();
+  endDrag();
+  touches.clear();
+  gesture=pinch=null;
+  lastPointer=null;
+  clearPreview();
+});
+function orbit(){choose(null);canvas.style.cursor="grab";}
+windowAction.addEventListener("click",advanceObservation);
+bedLeave.addEventListener("click",()=>leaveObservation());
+$("#rain-close").addEventListener("click",leaveObservation);
+fieldWindow.addEventListener("cancel",event=>{event.preventDefault();leaveObservation();});
+$("#rain-view").addEventListener("keydown",event=>{
+  if((event.key==="Enter"||event.key===" ")&&!event.repeat){
+    event.preventDefault();
+    if(!windowAction.disabled)advanceObservation();
   }
 });
+$("#orbit").addEventListener("click",orbit);
 $("#zoom-in").addEventListener("click",()=>world?.zoom(1.25));
 $("#zoom-out").addEventListener("click",()=>world?.zoom(.8));
-$("#home").addEventListener("click",()=>{world?.resetView();lastSpot=null;});
-$("#restart").addEventListener("click",()=>{
-  endTrayDrag();
+$("#home").addEventListener("click",()=>{meadow?.fieldTimeline?.setFollow(false);world?.resetView();clearPreview();});
+$("#fullscreen").hidden=!document.documentElement.requestFullscreen;
+$("#fullscreen").addEventListener("click",async()=>{
+  try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}
+  catch{notice("Full screen is unavailable in this browser.");}
+});
+$("#guide-toggle").addEventListener("click",()=>toggleGuide($("#field-guide").hidden));
+$("#guide-close").addEventListener("click",()=>toggleGuide(false));
+$("#prompt-close").addEventListener("click",()=>studyPrompt.close());
+$("#prompt-action").addEventListener("click",()=>{
+  studyPrompt.close();
+  toggleGuide(true);
+  followGuide();
+});
+$("#id-close").addEventListener("click",()=>$("#species-card").close());
+$("#id-continue").addEventListener("click",()=>{
+  $("#species-card").close();
+  nextChapter("identify");
+});
+yearRange.addEventListener("pointerdown",()=>{sliding=true;});
+for(const type of ["pointerup","pointercancel","blur"])window.addEventListener(type,()=>{sliding=false;});
+buttons.get("herd").setAttribute("aria-haspopup","dialog");
+buttons.get("herd").setAttribute("aria-controls","animal-pen");
+$("#pen-close").addEventListener("click",()=>pen.close());
+for(const button of pen.querySelectorAll("[data-animal]")){
+  button.addEventListener("click",()=>{
+    pen.close();
+    choose(button.dataset.animal);
+    canvas.focus({preventScroll:true});
+  });
+}
+$("#time-toggle").addEventListener("click",()=>toggleTime($("#panel-time").hidden));
+$("#follow-herd").addEventListener("click",()=>meadow?.fieldTimeline?.toggleFollow());
+$("#finish-observation").addEventListener("click",()=>{
+  if(meadow.fieldTimeline){
+    if(meadow.year<100)return;
+    leaveMainTimeline();
+    toggleTime(false);
+    nextChapter("dryYears");
+    world.showDirection(studyPlant.userData.direction,studyView());
+    return;
+  }
+  if(stage()!=="impact"||meadow.year<20||meadow.highestMound<=.12)return;
+  meadow.scrub(meadow.year);
+  toggleTime(false);toggleSoil(false);toggleGuide(true);
+  nextChapter("impact");
+});
+$("#time-close").addEventListener("click",()=>toggleTime(false));
+$("#manage").addEventListener("click",()=>choose(selected==="prune"?null:"prune"));
+$("#next-step").addEventListener("click",followGuide);
+$("#soil-view").addEventListener("click",()=>{choose(null);toggleSoil(!world.soilView);});
+$("#play-time").addEventListener("click",()=>meadow?.togglePlayback());
+yearRange.addEventListener("input",()=>meadow.scrub(Number(yearRange.value)));
+$("#recall-herd").addEventListener("click",()=>{
+  meadow.pasture.clear();
+  syncButtons();
+  notice("Herd recalled.");
+});
+function openRestart(){
+  endDrag();
+  clearPreview();
   $("#restart-dialog").showModal();
+}
+$("#restart").addEventListener("click",openRestart);
+$("#result-restart").addEventListener("click",openRestart);
+$("#result-before").addEventListener("click",()=>compareMeadow(true));
+$("#result-after").addEventListener("click",()=>compareMeadow(false));
+$("#result-explore").addEventListener("click",()=>{
+  leaveRecoveryResult();
+  document.querySelector(".workspace").classList.add("sandbox-mode");
+  canvas.focus({preventScroll:true});
 });
 $("#keep").addEventListener("click",()=>$("#restart-dialog").close());
 $("#confirm").addEventListener("click",()=>{
   $("#restart-dialog").close();
   if(!world)return;
-  grassCover=0;shownPercent=-1;
-  saplingsLeft=0;plantLoadError=false;
-  meadowRun++;
-  saplingSlots.forEach(slot=>slot.disabled=false);
-  gesture=null;pinch=null;touches.clear();
+  revision++;
+  leaveMainTimeline();
+  resetStudy();
   world.reset();
   meadow.reset();
-  workspace.dataset.phase="sow";
-  openFieldPanel("shrubs");
-  syncFieldButtons();
-  $("#field-tasks").querySelectorAll("li").forEach(item=>delete item.dataset.done);
-  $("#field-tasks").hidden=true;
+  touches.clear();
+  gesture=pinch=null;
+  lastPointer=null;
+  grassCover=0;
+  for(const species of Object.keys(inventory))inventory[species]=3;
+  sliding=false;
+  clearTimeout(toastTimer);
   $("#field-feedback").hidden=true;
-  setText("#field-feedback","");
-  setSoilView(false);
-  updateHerdPanel();
-  setText("#progress-caption","Grass cover");
-  $("#shrub-lock").hidden=false;
-  updateGuide();
-  $("#brush").hidden=false;
-  tray.hidden=true;
-  setTool("rotate");
-  setProgress();
+  toggleSoil(false);
+  toggleTime(false);
+  toggleGuide(true);
+  orbit();
+  renderChapter();
 });
-setProgress();
-updateGuide();
-syncFieldButtons();
-refreshTip();
+
+if(meadow){
+  meadow.onTime=updateTime;
+  meadow.onBite=recordBite;
+  meadow.onTick=studyTick;
+  meadow.onGraze=notice;
+  meadow.motion.onChange=()=>{syncButtons();refreshTip();};
+}
+async function startFieldStudy(){
+  const params=new URLSearchParams(location.search),entry=params.get("chapter");
+  const generation=revision;
+  if(world&&["arrival","identify","spread","dry-years","restore","result"].includes(entry)){
+    const model=await loadShrub();
+    if(generation!==revision)return;
+    if(model){
+      seedBed=FRONT.clone();arrivalPoint=seedBed.clone();
+      world.prepareMeadow(seedBed);
+      // A chapter entry begins after the initial eight seconds of grass growth.
+      world.clock.elapsedTime+=9;
+      wateredAt=world.clock.getElapsedTime()-9;grassCover=1;
+      // Chapter links reconstruct a two-animal example; ordinary play keeps the actual herd.
+      const [east,north]=tangentFrame(arrivalPoint);
+      meadow.releaseAnimal(onSurface(arrivalPoint,east,north,.49,.8),"cow",model);
+      meadow.releaseAnimal(onSurface(arrivalPoint,east,north,.72,2.9),"sheep",model);
+      chapter=chapters.findIndex(step=>step.id===(entry==="dry-years"?"dryYears":["restore","result"].includes(entry)?"uproot":entry));
+      if(entry!=="arrival"){
+        studyPlant=world.plantSapling(model,arrivalPoint,0);
+        if(entry!=="identify"){
+          meadow.establishStand(studyPlant,model);
+          meadow.scrub(entry==="spread"?20:entry==="dry-years"?44:100);
+        }
+      }
+      if(entry==="result"){
+        recordRestoration("preview");
+        for(const plant of meadow.stand)plant.userData.removedAt=meadow.year;
+        meadow.setYear(meadow.year);
+        chapter=chapters.length;uprooted=true;meadow.guidedDispersal=false;
+      }
+      world.showDirection(meadow.standCenter??arrivalPoint,FRONT);
+    }
+  }else if(world){
+    loadShrub();
+    if(entry==="water"){
+      seedBed=FRONT.clone();world.scatterSeeds(seedBed);
+      chapter=chapters.findIndex(step=>step.id==="water");
+    }
+  }
+  toggleGuide(true);renderChapter();syncButtons();refreshTip();
+  if(entry==="restore"&&stage()==="uproot"){clearTimeout(promptTimer);toggleGuide(false);}
+  const preview=params.get("play");
+  if(stage()==="arrival"&&preview==="wind"){
+    openObservation();
+  }
+}
+startFieldStudy();

@@ -3,127 +3,187 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#fff9eb">
-  <meta name="description" content="Turn a little planet and grow a spring meadow on every side.">
-  <title>EcoVis Grassland · Little Planet</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta name="theme-color" content="#e6eed7">
+  <meta name="description" content="Grow a meadow and explore how shrubs, grazing and time change your planet.">
+  <title>EcoVis Grassland</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css?v=ce38055f4d27">
   <script src="vendor/three.min.js" defer></script>
+  <script src="restoration-effects.js" defer></script>
+  <script src="shrub-highlight.js" defer></script>
   <script src="terrain.js" defer></script>
   <script src="sapling.js" defer></script>
   <script src="meadow-motion.js" defer></script>
+  <script src="clay-coats.js" defer></script>
+  <script src="clay-pasture.js" defer></script>
   <script src="pasture.js" defer></script>
   <script src="ecology.js" defer></script>
-  <script src="game.js" defer></script>
+  <script src="cloud-art.js" defer></script>
+  <script src="rain-shot.js?v=77158dbe5cb1" defer></script>
+  <script src="wind-arrival.js" defer></script>
+  <script src="hoof-journey.js" defer></script>
+  <script src="stand-observation.js" defer></script>
+  <script src="recovery-result.js" defer></script>
+  <script src="field-study.js?v=a5814d268e6c" defer></script>
+  <script src="game.js?v=40d4e5bad09e" defer></script>
 </head>
 <body>
-  <header class="masthead">
-    <div class="brand">
-      <span class="brand-emblem" data-icon="logo"></span>
-      <span>EcoVis <i>Grassland</i></span>
-    </div>
-    <button class="secondary restart" id="restart"><span data-icon="restart"></span> Restart</button>
-  </header>
-  <main class="workspace" data-phase="sow">
-    <aside class="tool-rail" aria-label="Meadow controls">
-      <div class="field-tabs" role="group" aria-label="Field tools">
-        <button class="field-tab" data-panel="shrubs" aria-controls="panel-shrubs" aria-pressed="true"><span data-icon="sprout"></span> Shrubs</button>
-        <button class="field-tab" data-panel="time" aria-controls="panel-time" aria-pressed="false"><span data-icon="clock"></span> Time</button>
-        <button class="field-tab" data-panel="grazing" aria-controls="panel-grazing" aria-pressed="false"><span data-icon="graze"></span> Grazing</button>
-        <button class="field-tab" data-panel="management" aria-controls="panel-management" aria-pressed="false" aria-label="Management"><span data-icon="shears"></span> Manage</button>
-      </div>
-      <section class="field-card" id="panel-shrubs" aria-labelledby="tray-title">
-        <h2 id="tray-title">Sea buckthorn</h2>
-        <p id="shrub-lock">Finish sowing to unlock saplings.</p>
-        <div id="sapling-tray" aria-describedby="tray-tip" hidden>
-          <p class="tray-heading" id="sapling-count" role="status"></p>
-          <div class="tray-slots">
-            <button class="sapling-slot" aria-label="Sea buckthorn sapling 1" aria-pressed="false"><img src="assets/sapling-token.webp" alt="" draggable="false" width="224" height="224"><span class="slot-check" data-icon="check"></span></button>
-            <button class="sapling-slot" aria-label="Sea buckthorn sapling 2" aria-pressed="false"><img src="assets/sapling-token.webp" alt="" draggable="false" width="224" height="224"><span class="slot-check" data-icon="check"></span></button>
-            <button class="sapling-slot" aria-label="Sea buckthorn sapling 3" aria-pressed="false"><img src="assets/sapling-token.webp" alt="" draggable="false" width="224" height="224"><span class="slot-check" data-icon="check"></span></button>
-          </div>
-          <p id="tray-tip">Drag a sapling onto the planet.</p>
-        </div>
-      </section>
-      <section class="field-card" id="panel-time" hidden>
-        <h2 id="year-value">Year 0.0</h2>
-        <p class="growth-stage" id="growth-stage">Young saplings</p>
-        <input class="year-range" id="year-range" type="range" min="0" max="100" step="0.25" value="0" aria-label="Meadow year" aria-describedby="growth-stage" disabled>
-        <div class="year-ends" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
-        <div class="dry-reading"><span>Dry ground</span><output id="dry-cover">0%</output></div>
-        <button class="field-action" id="play-time" disabled>Play timeline</button>
-        <button class="secondary soil-toggle" id="soil-view" aria-pressed="false" disabled><span data-icon="layers"></span> Soil view</button>
-        <p id="soil-notes" hidden>Root microbes fix nitrogen, and fallen leaves add organic matter. Switch back to see greener edges and thinner grass under dense shade.</p>
-      </section>
-      <section class="field-card" id="panel-grazing" hidden>
-        <h2>Grazing herd</h2>
-        <p id="herd-count">2 cattle and 3 sheep</p>
-        <div class="herd-actions">
-          <button class="field-action" id="graze" aria-pressed="false" disabled>Release herd</button>
-          <button class="field-action recall-herd" id="recall-herd" hidden disabled>Recall herd</button>
-        </div>
-      </section>
-      <section class="field-card" id="panel-management" hidden>
-        <h2>Prune shrubs</h2>
-        <p>Trim an established shrub to let light reach the grass.</p>
-        <button class="field-action" id="manage" aria-pressed="false" disabled>Choose shrub</button>
-      </section>
-    </aside>
+  <main class="workspace">
+    <div class="field-view">
     <section id="scene" class="scene" aria-label="3D planet">
-      <div class="canvas-space">
-        <canvas id="world" tabindex="0" aria-label="3D planet. Arrow keys turn the planet. Press Enter to use the selected tool at the center."></canvas>
-        <div class="camera-tools" role="group" aria-label="Zoom and view controls">
-          <button id="zoom-in" class="icon-button" aria-label="Zoom in" title="Zoom in" data-icon="plus"></button>
-          <button id="zoom-out" class="icon-button" aria-label="Zoom out" title="Zoom out" data-icon="minus"></button>
-          <button id="home" class="icon-button" aria-label="Reset view" title="Reset view" data-icon="focus"></button>
-        </div>
-        <p id="fallback" hidden>3D rendering is unavailable here. Open the sandbox in a browser with WebGL enabled.</p>
-        <div class="soil-legend" id="soil-legend" hidden>
-          <strong>Soil nutrients <output id="enriched-cover">0% enriched</output></strong>
-          <div class="soil-scale" aria-hidden="true"></div>
-          <div class="soil-scale-labels"><span>Background</span><span>Enriched</span></div>
-        </div>
+      <canvas id="world" tabindex="0" aria-label="3D planet. Arrow keys orbit, Enter uses the selected tool at the center, and Escape puts it away."></canvas>
+      <span id="main-seed-label" class="hoof-label" hidden></span>
+      <div class="edge-softness" aria-hidden="true"></div>
+      <button type="button" id="sky-cloud" data-item="water" aria-label="Pick up the rain cloud" title="Drag the cloud to the seeds" hidden><img alt="" draggable="false"></button>
+      <p id="fallback" hidden>3D rendering is unavailable here. Open the sandbox in a browser with WebGL 2 enabled.</p>
+    </section>
+    <div id="result-compare" class="result-compare" role="group" aria-label="Compare the meadow" hidden>
+      <button type="button" id="result-before" aria-pressed="false">Before clearing</button>
+      <button type="button" id="result-after" aria-pressed="true">After recovery</button>
+    </div>
+    </div>
+
+    <header class="masthead">
+      <div class="brand"><span class="brand-emblem" data-icon="logo"></span><span>EcoVis <i>Grassland</i></span></div>
+      <span id="result-year" hidden></span>
+      <div class="guide-meter">
+        <div class="progress-label"><span id="guide-progress-label">Field study</span><strong id="guide-count" aria-hidden="true">0 / 10</strong></div>
+        <div class="progress-track" id="guide-progress" role="progressbar" aria-labelledby="guide-progress-label" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span></span></div>
       </div>
-      <div class="tool-area">
-        <div class="tools" role="group" aria-label="Planet tools">
-          <button id="rotate" aria-pressed="true"><span data-icon="orbit"></span> Rotate</button>
-          <button id="brush" aria-pressed="false"><span data-icon="grass"></span> Sow</button>
+      <button class="icon-button restart" id="restart" aria-label="Restart" title="Restart"><span data-icon="restart"></span><span class="restart-label">Restart</span></button>
+      <button class="icon-button" id="bed-leave" type="button" aria-label="Return to the meadow" hidden><span data-icon="close"></span><span>Back</span></button>
+    </header>
+
+    <section id="recovery-result" aria-labelledby="result-title" hidden>
+      <div class="result-intro">
+        <p class="result-status"><span aria-hidden="true">✓</span> Field study complete</p>
+        <h1 id="result-title" tabindex="-1">The meadow <em>returns.</em></h1>
+        <p id="result-story"></p>
+      </div>
+      <div class="result-details">
+        <table class="result-readings" aria-label="Study plot before clearing and after recovery">
+          <thead><tr><th scope="col">Study plot</th><th scope="col">Before</th><th scope="col">After</th></tr></thead>
+          <tbody><tr><th scope="row">Sea buckthorn shrubs</th><td id="result-old-shrubs"></td><td id="result-new-shrubs"></td></tr>
+          <tr><th scope="row">Exposed soil</th><td id="result-old-soil"></td><td id="result-new-soil"></td></tr></tbody>
+        </table>
+        <div class="result-actions">
+          <button class="primary" type="button" id="result-explore">Explore the meadow</button>
+          <button type="button" id="result-restart"><span data-icon="restart" aria-hidden="true"></span>Start again</button>
         </div>
-        <p id="scene-tip">Drag the planet to turn it · Scroll to zoom</p>
       </div>
     </section>
-    <aside class="task-panel" aria-labelledby="task-title">
-      <p class="task-label">Field tasks</p>
-      <div class="task-copy" aria-live="polite">
-        <h1 id="task-title">Grow a meadow.</h1>
-        <p id="task-description">Choose Sow and drag across the soil to plant grass. Use Rotate to reach the other side of your planet.</p>
+
+    <nav class="camera-tools" aria-label="Camera">
+      <button id="orbit" class="icon-button" aria-label="Orbit and put tool away" title="Orbit · Esc" data-icon="orbit"></button>
+      <button id="zoom-in" class="icon-button" aria-label="Zoom in" title="Zoom in" data-icon="plus"></button>
+      <button id="zoom-out" class="icon-button" aria-label="Zoom out" title="Zoom out" data-icon="minus"></button>
+      <button id="home" class="icon-button" aria-label="Reset view" title="Reset view" data-icon="focus"></button>
+      <button id="fullscreen" class="icon-button" aria-label="Toggle full screen" title="Full screen" data-icon="expand" hidden></button>
+      <button id="guide-toggle" class="icon-button" aria-label="Field guide" title="Field guide" aria-controls="field-guide" aria-expanded="true" data-icon="guide"></button>
+    </nav>
+
+    <aside class="card task-panel" id="field-guide" aria-label="Field guide">
+      <div class="field-heading"><span data-icon="guide"></span><strong>Field guide</strong><button id="guide-close" class="plain-icon" aria-label="Hide field guide" data-icon="close"></button></div>
+      <div class="task-copy" aria-live="polite" aria-atomic="true">
+        <h1 id="task-title">Sow the first seeds</h1>
+        <p id="task-description">Scatter grass seed on the bare soil inside the pale ring.</p>
       </div>
-      <button class="primary next-step" id="next-step"><span id="next-step-label">Select Sow</span><span data-icon="arrow"></span></button>
-      <div class="task-action">
-        <div class="progress-label"><span id="progress-caption">Grass cover</span><strong id="progress-value">0%</strong></div>
-        <div class="progress-track" id="progress" role="progressbar" aria-label="Grass cover" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
-      </div>
-      <ol class="field-tasks" id="field-tasks" hidden>
-        <li id="task-plant"><span class="task-marker" data-icon="check"></span><span>Plant the reward saplings</span><strong id="plant-progress">0 / 3</strong></li>
-        <li id="task-enrich"><span class="task-marker" data-icon="check"></span><span>Find enriched soil</span></li>
-        <li id="task-time"><span class="task-marker" data-icon="check"></span><span>Watch fruit ripen</span></li>
-        <li id="task-grazing"><span class="task-marker" data-icon="check"></span><span>Watch the herd graze</span></li>
-        <li id="task-management"><span class="task-marker" data-icon="check"></span><span>Prune a shrub</span></li>
-        <li id="task-desert"><span class="task-marker" data-icon="check"></span><span>Observe desertification</span></li>
-      </ol>
-      <p class="field-feedback" id="field-feedback" role="status" hidden></p>
+      <div class="task-reading" id="task-reading"><span id="task-reading-label">Grass cover</span><strong id="progress-value">0%</strong></div>
+      <button class="primary next-step" id="next-step">Pick grass seed</button>
     </aside>
+
+    <aside class="card time-panel" id="panel-time" aria-labelledby="year-value" hidden>
+      <div class="field-heading"><span data-icon="clock"></span><strong>Timeline</strong><button id="time-close" class="plain-icon" aria-label="Close timeline" data-icon="close"></button></div>
+      <h2 id="year-value">Year 0.0</h2>
+      <p class="growth-stage" id="growth-stage">Young saplings</p>
+      <input class="year-range" id="year-range" type="range" min="0" max="100" step="0.25" value="0" aria-label="Meadow year" aria-describedby="growth-stage">
+      <div class="year-ends" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div>
+      <div class="soil-readings">
+        <div><span>Grass beneath shrub</span><output id="understory-reading">100%</output></div>
+        <div><span>Enriched soil</span><output id="enrichment-reading">0%</output></div>
+        <div><span>Highest mound</span><output id="mound-height">0 cm</output></div>
+        <div><span>Dry ground</span><output id="dry-cover">0%</output></div>
+      </div>
+      <button class="field-action" id="play-time">Play timeline</button>
+      <button class="field-action secondary" id="follow-herd" aria-pressed="false" hidden>Follow herd</button>
+      <button class="field-action secondary" id="soil-view" aria-pressed="false"><span data-icon="layers"></span> Soil view</button>
+      <button class="primary next-step" id="finish-observation" hidden disabled>Explore to Year 20</button>
+      <p id="soil-notes" hidden>Teal marks enriched soil. Contours mark the raised ground that builds up under long-established shrubs.</p>
+    </aside>
+
+    <div class="soil-legend" id="soil-legend" hidden>
+      <strong>Soil nutrients <output id="enriched-cover">0% enriched</output></strong>
+      <div class="soil-scale" aria-hidden="true"></div>
+      <div class="soil-scale-labels"><span>Background</span><span>Enriched</span></div>
+    </div>
+    <div id="field-feedback" class="toast" role="status" hidden></div>
+    <section id="bed-controls" aria-label="Seed bed controls" hidden>
+      <p id="bed-caption" role="status"></p>
+    </section>
+
+    <div class="dock">
+      <div class="dock-heading">
+        <p id="scene-tip">Drag the scene to orbit · Scroll to zoom</p>
+        <div class="dock-actions">
+          <button id="time-toggle" class="dock-action" aria-controls="panel-time" aria-expanded="false"><span data-icon="clock"></span> Time</button>
+          <button id="manage" class="dock-action" aria-pressed="false"><span data-icon="shears"></span> Prune</button>
+          <button id="recall-herd" class="dock-action" hidden><span data-icon="restart"></span> Recall</button>
+        </div>
+      </div>
+      <div class="hotbar" id="hotbar" role="group" aria-label="Place on the planet"></div>
+    </div>
   </main>
-  <img id="drag-sapling" class="drag-sapling" src="assets/sapling-token.webp" alt="" draggable="false" hidden>
-  <dialog id="reward-dialog" class="reward-dialog" aria-labelledby="reward-title" aria-describedby="reward-description">
-    <div class="reward-art"><img src="assets/reward-saplings.webp" alt="" width="640" height="292"></div>
-    <h2 id="reward-title">Meadow complete!</h2>
-    <p class="reward-amount">3 sea buckthorn saplings</p>
-    <p id="reward-description">Drag them from the tray onto your planet.</p>
-    <form method="dialog" class="reward-actions">
-      <button class="primary" value="plant" autofocus><span data-icon="sprout"></span> Start planting</button>
-      <button class="reward-later" value="later">Plant later</button>
-    </form>
+
+  <dialog id="rain-window" aria-labelledby="rain-title" aria-describedby="rain-caption">
+    <div class="rain-heading">
+      <span class="rain-mark" data-icon="wind" aria-hidden="true"></span>
+      <h2 id="rain-title">Carried by the wind</h2>
+      <button id="rain-close" class="plain-icon" aria-label="Back to the meadow" title="Back to the meadow" data-icon="close"></button>
+    </div>
+    <div id="rain-view"></div>
+    <div class="rain-footer">
+      <p id="rain-caption" role="status"></p>
+      <button class="primary" id="rain-action" type="button">Move the cloud</button>
+    </div>
   </dialog>
+  <dialog id="study-prompt" class="study-prompt" aria-labelledby="prompt-title" aria-describedby="prompt-body">
+    <div class="prompt-top"><span id="prompt-step"></span><button id="prompt-close" class="plain-icon" aria-label="Dismiss this prompt" data-icon="close"></button></div>
+    <span id="prompt-symbol" hidden></span>
+    <img id="prompt-art" src="assets/grass-token.webp" alt="">
+    <h2 id="prompt-title"></h2><p id="prompt-body"></p>
+    <button id="prompt-action" class="primary"></button>
+
+  </dialog>
+  <dialog id="species-card" aria-labelledby="id-title">
+    <div class="prompt-top"><span>Field identification</span><button id="id-close" class="plain-icon" data-icon="close" aria-label="Close field identification"></button></div>
+    <h2 id="id-title">Sea buckthorn</h2>
+    <p class="latin-name"><i>Hippophae rhamnoides</i></p>
+    <p>A sea buckthorn seedling has taken root in your meadow. Its narrow leaves are already visible. The orange fruit develops as the shrub matures.</p>
+    <div class="plant-photos">
+      <figure><img src="assets/buckthorn-foliage.webp" alt="Long, narrow leaves with silvery undersides along a woody branch."><figcaption>Silver-green leaves</figcaption></figure>
+      <figure><img src="assets/buckthorn-fruit.webp" alt="Ripe orange fruit clustered against the branches of a mature sea buckthorn."><figcaption>Fruit on a mature shrub</figcaption></figure>
+    </div>
+    <details class="photo-credits"><summary>Photo credits</summary>
+      <p>Leaves by <a href="https://commons.wikimedia.org/wiki/File:20180525Hippophae_rhamnoides2.jpg" target="_blank" rel="noopener">AnRo0002</a> · <a href="https://creativecommons.org/publicdomain/zero/1.0/" target="_blank" rel="noopener">CC0 1.0</a><br>
+      Fruit by <a href="https://commons.wikimedia.org/wiki/File:Hippopha%C3%AB_rhamnoides_fruits2.jpg" target="_blank" rel="noopener">MurielBendel</a> · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener">CC BY-SA 4.0</a>. Photos resized and converted to WebP.</p>
+    </details>
+    <button class="primary" type="button" id="id-continue">Observe its growth</button>
+  </dialog>
+  <dialog id="animal-pen" aria-labelledby="pen-title">
+    <div class="prompt-top"><h2 id="pen-title">Herd inventory</h2><button id="pen-close" class="plain-icon" aria-label="Close herd inventory" data-icon="close"></button></div>
+    <p>Choose one animal, then place it on the meadow.</p>
+    <p id="pen-limit">Study limit: two animals on the meadow at once.</p>
+    <div class="animal-options">
+      <button data-animal="cow"><img src="assets/cow-token.webp" alt=""><strong>Cow</strong><span></span></button>
+      <button data-animal="sheep"><img src="assets/sheep-token.webp" alt=""><strong>Sheep</strong><span></span></button>
+    </div>
+  </dialog>
+
+  <div class="placement-cursor" id="placement-cursor" aria-hidden="true" hidden>
+    <span id="placement-symbol" hidden></span>
+    <img id="placement-image" alt="" width="44" height="44" draggable="false">
+    <div><strong id="placement-name"></strong><small id="placement-hint"></small></div>
+  </div>
   <dialog id="restart-dialog" aria-labelledby="restart-title">
     <h2 id="restart-title">Start again?</h2>
     <p>This will return your planet to bare soil.</p>

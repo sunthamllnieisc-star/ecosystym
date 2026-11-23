@@ -6,9 +6,9 @@ EcoVis Grassland is a 3D browser sandbox for exploring how plants, grazing anima
 
 Download or clone this repository, then open `index.html` in a browser with WebGL 2. No build or installation is required.
 
-- **Sow** grass as you turn the planet. Finish the meadow to earn three sea buckthorn saplings.
-- Drag each sapling from **Shrubs** onto the planet. The field tasks panel shows which tool to use next.
-- Use **Time** to watch the shrubs grow and fruit, and scrub through 100 years of change. **Soil view** highlights nutrient enrichment around the shrubs.
-- Release cattle and sheep with **Grazing**, then use **Manage** to prune an established shrub.
+- Scatter grass seeds, then drag the rain cloud onto the seed bed. The soil darkens and shoots emerge in your current view.
+- Place cattle or sheep individually and watch the grass recover after grazing.
+- Follow a windblown seed, identify sea buckthorn, and move through the timeline to see how the shrubs spread and exposed soil expands.
+- Uproot shrubs individually or choose the landscape burn. Watch grass return to the cleared ground.
 
 This project bundles Three.js. See [its license](vendor/THREE-LICENSE.txt).

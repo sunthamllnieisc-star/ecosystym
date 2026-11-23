@@ -9,6 +9,7 @@ const MAP_HEIGHT = 64;
 const TURN = Math.PI * 2;
 const SEED_ANGLE = .50;
 const SAPLING_SCALE = 1.77;
+const MOUND_LIMIT=.58;
 const FRONT = new THREE.Vector3(0,0,1);
 const clamp = (value,min,max) => Math.max(min,Math.min(value,max));
 const angleBetween = (a,b) => Math.acos(clamp(a.dot(b),-1,1));
@@ -69,13 +70,36 @@ void main() {
   gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);
 }`;
 
+const pastureShadow = `
+uniform int grazerCount;
+uniform vec4 hoofCenters[5];
+uniform vec3 herdAxes[5];
+float grazingShade(vec3 direction){
+  float shade=0.0;
+  for(int i=0;i<5;i++){
+    if(i>=grazerCount)break;
+    vec3 d=5.0*(direction-hoofCenters[i].xyz);
+    float lengthwise=dot(d,herdAxes[i]);
+    float footprint=max(dot(d,d)-.72*lengthwise*lengthwise,0.0);
+    shade=max(shade,1.0-smoothstep(.012,.33,footprint*hoofCenters[i].w));
+  }
+  return shade;
+}`;
 const surfaceFragment = `
+${burnField}
+${pastureShadow}
 uniform sampler2D seeds;
+uniform sampler2D sownMap;
 uniform sampler2D stressMap;
 uniform sampler2D dryMap;
 uniform sampler2D nutrientMap;
+uniform sampler2D moundMap;
 uniform float soilView;
 uniform float time;
+uniform vec3 bed;
+uniform float wet;
+uniform float ring;
+uniform float softShadow;
 varying vec3 localDir;
 varying vec3 litNormal;
 varying float lift;
@@ -92,30 +116,64 @@ void main() {
   vec3 soil=mix(vec3(.725,.501,.325),vec3(.831,.632,.419),layers);
   soil+=smoothstep(.09,.6,lift)*vec3(.061,.026,.005);
   soil+=specks;
+  if(wet>0. || softShadow>0. || (ring>=0. && ring<1.)){
+    float d=length(n-bed)*5.;
+    float grain=noise(n*530.)*.04+noise(n*173.)*.04;
+    float shore=d+.13*(noise(n*54.)-.5)+.13*(noise(n*23.)-.5);
+    float damp=wet<=0.?0.:1.-smoothstep(wet*.61,wet+.026,shore);
+    float mineral=noise(n*188.)*.055+noise(n*61.)*.047;
+    soil+=(grain-.04)*damp;
+    soil=mix(soil,soil*vec3(.60,.51,.47)+vec3(mineral*.7,mineral*.55,mineral*.42),damp*.96);
+    soil+=smoothstep(.66,.84,noise(n*290.))*damp*.035;
+    soil*=1.-softShadow*.09*exp(-d*d*1.9);
+    if(ring>=0. && ring<1.){
+      float line=1.-smoothstep(.008,.021,abs(d-(.05+.39*ring)));
+      soil+=vec3(.23,.28,.24)*line*(1.-ring);
+    }
+  }
   float band=clamp(.49+.28*sin(n.x*5.9+n.z*4.1)*cos(n.y*4.6-n.x*2.1)+.24*sin(n.y*6.6+n.z*3.4),0.0,1.0);
   vec3 grass=mix(vec3(.208,.487,.266),vec3(.513,.737,.285),smoothstep(.22,.79,band));
   grass+=noise(n*39.0)*.019;
   vec2 uv=grassUV(n);
   float timestamp=texture2D(seeds,uv).r;
+  float sown=texture2D(sownMap,uv).r;
   float stress=texture2D(stressMap,uv).r;
   float dry=texture2D(dryMap,uv).r;
   float nutrients=texture2D(nutrientMap,uv).r;
+  float mound=texture2D(moundMap,uv).r;
   float edgeGrowth=nutrients*(1.0-smoothstep(.30,.77,stress));
   soil=mix(soil,vec3(.37,.253,.15)+field*.12,smoothstep(.10,.85,nutrients)*.93);
+  float litter=noise(n*76.0+4.7);
+  vec3 topsoil=mix(vec3(.39,.268,.16),vec3(.52,.35,.20),smoothstep(.20,.86,litter));
+  soil=mix(soil,topsoil,smoothstep(.08,.58,mound)*.88);
   grass=mix(grass,vec3(.12,.60,.34),edgeGrowth*.91);
   grass=mix(grass,vec3(.65,.54,.28),stress*.91);
   grass=mix(grass,vec3(.70,.60,.30),smoothstep(.06,.64,dry)*.94);
+  float fissure=0.;
   if(dry>.20){
     float crust=smoothstep(.20,.78,dry);
     vec3 sand=mix(vec3(.78,.59,.37),vec3(.96,.80,.50),layers);
-    vec2 warp=vec2(noise(n*19.1),noise(n*21.7+7.3))-.5;
-    vec2 tile=fract(n.xy*28.0+n.z*vec2(11.0,19.0)+warp*1.85);
-    vec2 edge=min(tile,1.0-tile);
-    float crack=(1.0-smoothstep(.012,.042,min(edge.x,edge.y))) * smoothstep(.28,.65,noise(n*17.5+2.6));
-    sand+=specks-crack*vec3(.19,.14,.075)*crust;
+    vec2 warp=vec2(noise(n*21.1),noise(n*24.7+7.3))-.5;
+    vec2 p=n.xy*15.0+n.z*vec2(6.7,10.3)+warp*.51;
+    vec2 cell=floor(p),f=fract(p);
+    float nearest=5.,second=5.;
+    for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++){
+      vec2 neighbor=vec2(float(x),float(y)),id=cell+neighbor;
+      vec2 site=.19+.62*vec2(hash(vec3(id,1.3)),hash(vec3(id,4.7)));
+      vec2 delta=neighbor+site-f;
+      float d=dot(delta,delta);
+      second=min(second,max(nearest,d));nearest=min(nearest,d);
+    }
+    float seam=sqrt(second)-sqrt(nearest);
+    float crack=(1.-smoothstep(.018,.071,seam))*smoothstep(.32,.91,dry);
+    fissure=crack;
+    float leeward=sin(n.x*65.+n.y*40.+noise(n*9.)*5.);
+    sand+=specks+.025*leeward+smoothstep(.045,.11,seam)*(1.-smoothstep(.11,.22,seam))*.035;
+    sand=mix(sand,vec3(.46,.30,.17),crack*(.66+.24*noise(n*24.)));
     soil=mix(soil,sand,crust);
   }
-  float grown=step(0.0,timestamp)*smoothstep(.0,.44,time-timestamp)*(1.0-.56*stress);
+  float grown=smoothstep(.02,.97,sown)*(timestamp<0.0?1.0:smoothstep(.0,2.7,time-timestamp))*(1.0-.56*stress);
+  grown*=1.0-.65*smoothstep(.37,.91,stress)*max(nutrients,mound);
   grown*=1.0-smoothstep(.37,.84,dry);
   vec3 color=mix(soil,grass,grown);
   vec3 dusk=mix(vec3(.176,.063,.019),vec3(.11,.18,.074),grown);
@@ -127,21 +185,39 @@ void main() {
     float tint=smoothstep(.015,.83,nutrients);
     vec3 soilMap=mix(vec3(.81,.75,.61),vec3(.10,.54,.47),tint);
     soilMap+=noise(n*38.0)*.045;
+    float contour=(1.0-smoothstep(.025,.095,abs(fract(mound*5.0)-.5)))*smoothstep(.05,.27,mound);
+    soilMap=mix(soilMap,vec3(.20,.37,.28),contour*.61);
     soilMap*=mix(.72,1.02,shade);
     color=mix(color,soilMap,soilView);
   }
+  if(burnFront>-.1){
+    float d=fireDistance(n), ash=ashCover(n,d);
+    vec3 charcoal=mix(vec3(.20,.18,.17),vec3(.43,.39,.35),field+.21*litter)*(.78+.23*shade);
+    charcoal*=1.-.36*fissure;
+    float coals=smoothstep(.73,.90,noise(n*161.+2.))*smoothstep(.53,.68,field);
+    float glow=.54+.24*sin(time*2.3+field*28.);
+    float ember=(coals+.29*fissure*smoothstep(.56,.79,litter))*glow*(1.-regrowth);
+    color=mix(color,charcoal+vec3(.82,.26,.038)*ember,ash);
+  }
+  color*=1.0-.26*grazingShade(n);
   gl_FragColor=vec4(color,1.0);
 }`;
 
 const bladeVertex = `
+${burnField}
+${pastureShadow}
+varying float grazingShadow;
 attribute vec3 root;
 attribute vec3 outward;
 attribute vec3 stalk;
 attribute vec4 bladeStyle;
+uniform vec3 hoofPrint;
 uniform sampler2D seeds;
+uniform sampler2D sownMap;
 uniform sampler2D stressMap;
 uniform sampler2D dryMap;
 uniform sampler2D nutrientMap;
+uniform sampler2D moundMap;
 uniform float soilView;
 uniform float time;
 uniform float wind;
@@ -154,17 +230,25 @@ varying float enrichment;
 ${sphereUv}
 void main() {
   vec3 n=outward;
+  grazingShadow=grazingShade(n);
   vec3 b=normalize(stalk);
   vec3 across=normalize(cross(b,n));
   vec2 uv=grassUV(n);
   float planted=texture2D(seeds,uv).r;
+  float sown=texture2D(sownMap,uv).r;
   float stress=texture2D(stressMap,uv).r;
   float dry=texture2D(dryMap,uv).r;
-  enrichment=texture2D(nutrientMap,uv).r*(1.0-smoothstep(.29,.76,stress))*(1.0-dry);
+  float nutrients=texture2D(nutrientMap,uv).r;
+  enrichment=nutrients*(1.0-smoothstep(.29,.76,stress))*(1.0-dry);
   drying=max(stress,smoothstep(.06,.68,dry));
   float loss=smoothstep(.16+bladeStyle.w*.22,.76+bladeStyle.w*.12,dry);
-  float grow=step(0.0,planted)*smoothstep(.02,.63,time-planted)*(1.0-.94*stress)*(1.0-loss);
+  float grow=smoothstep(.10+bladeStyle.w*.23,.91,sown)*(planted<0.0?1.0:smoothstep(.02,2.7,time-planted))*(1.0-.94*stress)*(1.0-loss);
+  float canopyPressure=nutrients*smoothstep(.52,.98,stress);
+  float tuftVariation=fract(sin(dot(floor(root*3.0),vec3(12.3,27.1,43.8)))*4375.13);
+  grow*=1.0-smoothstep(.16+.42*tuftVariation,.56+.38*tuftVariation,canopyPressure);
   grow*=(1.0+.39*enrichment)*(1.0-soilView);
+  grow*=mix(.09,1.0,smoothstep(.18,.68,distance(root,hoofPrint)));
+  if(burnFront>-.1)grow*=1.-ashCover(n,fireDistance(n));
   t=position.y;
   fold=position.x;
   colorway=bladeStyle.w;
@@ -174,7 +258,8 @@ void main() {
   float width=bladeStyle.y*(.84+.22*sin(t*3.8))*(1.0-pow(t,1.28));
   vec3 lift=n*(bladeStyle.x*(t-.11*t*t*t) + width*(1.0-abs(fold))*.49);
   vec3 offset=across*width*fold+(b*bladeStyle.z+breeze)*bladeStyle.x*t*t;
-  vec3 p=root+(lift+offset)*grow;
+  vec3 ground=root+n*(texture2D(moundMap,uv).r*${MOUND_LIMIT});
+  vec3 p=ground+(lift+offset)*grow;
   vec3 face=normalize(normalMatrix * n);
   float light=dot(face,normalize(vec3(-.55,.62,.57)));
   sunlight=smoothstep(-.32,.85,light) + .034*wave*wind;
@@ -183,6 +268,7 @@ void main() {
 }`;
 
 const bladeFragment = `
+varying float grazingShadow;
 varying float t;
 varying float colorway;
 varying float sunlight;
@@ -197,6 +283,7 @@ void main() {
   color=mix(color,tipColor,smoothstep(.65,.88,t)*.84);
   color=mix(color,mix(vec3(.06,.40,.237),vec3(.41,.82,.53),t),enrichment*.87);
   color=mix(color,vec3(.72,.59,.29),drying*.88);
+  color*=1.0-.25*grazingShadow*(1.0-.48*t);
   color*=.76+.26*sunlight+.068*smoothstep(-.12,.09,fold);
   color+=smoothstep(.84,1.0,sunlight)*vec3(.026,.029,.008);
   gl_FragColor=vec4(color,1.0);
@@ -251,6 +338,11 @@ class Planet {
     this.paintTexture=new THREE.DataTexture(this.coverage,MAP_WIDTH,MAP_HEIGHT,THREE.RedFormat,THREE.FloatType);
     this.paintTexture.minFilter=this.paintTexture.magFilter=THREE.NearestFilter;
     this.paintTexture.needsUpdate=true;
+    this.sownPixels=new Uint8Array(this.coverage.length);
+    this.sownTexture=new THREE.DataTexture(this.sownPixels,MAP_WIDTH,MAP_HEIGHT,THREE.RedFormat,THREE.UnsignedByteType);
+    this.sownTexture.minFilter=this.sownTexture.magFilter=THREE.LinearFilter;
+    this.sownTexture.wrapS=THREE.RepeatWrapping;
+    this.sownTexture.needsUpdate=true;
     this.stress=new Float32Array(this.coverage.length);
     this.stressTexture=new THREE.DataTexture(this.stress,MAP_WIDTH,MAP_HEIGHT,THREE.RedFormat,THREE.FloatType);
     this.stressTexture.minFilter=this.stressTexture.magFilter=THREE.NearestFilter;
@@ -266,38 +358,59 @@ class Planet {
     this.nutrientTexture.minFilter=this.nutrientTexture.magFilter=THREE.LinearFilter;
     this.nutrientTexture.wrapS=THREE.RepeatWrapping;
     this.nutrientTexture.needsUpdate=true;
+    this.moundPixels=new Uint8Array(this.coverage.length);
+    this.moundTexture=new THREE.DataTexture(this.moundPixels,MAP_WIDTH,MAP_HEIGHT,THREE.RedFormat,THREE.UnsignedByteType);
+    this.moundTexture.minFilter=this.moundTexture.magFilter=THREE.LinearFilter;
+    this.moundTexture.wrapS=THREE.RepeatWrapping;
+    this.moundTexture.needsUpdate=true;
     this.soilView=false;
     this.soilOpacity={value:0};
     const geometry=new THREE.SphereGeometry(RADIUS,LONGITUDES,LATITUDES);
     const vertices=geometry.attributes.position;
     const directions=new Float32Array(vertices.count*3);
+    this.baseRadii=new Float64Array(vertices.count);
+    this.surfaceSamples=new Float32Array(vertices.count*2);
     for(let i=0;i<vertices.count;i++){
       const x=vertices.getX(i)/RADIUS, y=vertices.getY(i)/RADIUS, z=vertices.getZ(i)/RADIUS;
       directions.set([x,y,z],i*3);
       const r=RADIUS+naturalHeight(x,y,z);
+      this.baseRadii[i]=r;
+      this.surfaceSamples[i*2]=((Math.atan2(z,x)/TURN+1)%1)*MAP_WIDTH-.5;
+      this.surfaceSamples[i*2+1]=Math.acos(clamp(y,-1,1))/Math.PI*MAP_HEIGHT-.5;
       vertices.setXYZ(i,x*r,y*r,z*r);
     }
     geometry.setAttribute("surfaceDir",new THREE.BufferAttribute(directions,3));
     this.smoothSurfaceNormals(geometry);
+    this.herdShade={
+      grazerCount:{value:0},
+      hoofCenters:{value:Array.from({length:5},()=>new THREE.Vector4(0,0,0,1))},
+      herdAxes:{value:Array.from({length:5},()=>new THREE.Vector3())}
+    };
+    this.fireUniforms={burnFront:{value:-1},regrowth:{value:0},burnOrigin:{value:new THREE.Vector3(0,0,1)}};
     this.surface=new THREE.Mesh(geometry,new THREE.ShaderMaterial({
       vertexShader:surfaceVertex,fragmentShader:surfaceFragment,
-      uniforms:{seeds:{value:this.paintTexture},stressMap:{value:this.stressTexture},dryMap:{value:this.dryTexture},
-        nutrientMap:{value:this.nutrientTexture},soilView:this.soilOpacity,time:{value:0}},
+      uniforms:{...this.herdShade,...this.fireUniforms,bed:{value:new THREE.Vector3()},wet:{value:0},ring:{value:-1},softShadow:{value:0},
+        seeds:{value:this.paintTexture},sownMap:{value:this.sownTexture},stressMap:{value:this.stressTexture},dryMap:{value:this.dryTexture},
+        nutrientMap:{value:this.nutrientTexture},moundMap:{value:this.moundTexture},soilView:this.soilOpacity,time:{value:0}},
     }));
     this.planet.add(this.surface);
     this.cursor=this.makeRing(SEED_ANGLE,.007,0xfff8dc);
     this.cursor.visible=false;
     this.planet.add(this.cursor);
+    this.sowHint=this.makeRing(SEED_ANGLE,.005,0xfff4cf);
+    this.sowHint.visible=false;
+    this.planet.add(this.sowHint);
     this.scale=1;
     new ResizeObserver(()=>this.resize()).observe(canvas);
     this.resize();
+    this.shrubHighlight=new ShrubHighlight(this);
     this.renderer.setAnimationLoop(()=>this.render());
   }
 
   resize() {
     const {width,height}=this.canvas.getBoundingClientRect();
     if(!width||!height) return;
-    this.pixelsPerUnit=Math.min(width*.429,height*.423)/RADIUS;
+    this.pixelsPerUnit=Math.min(width*.405,height*.355)/RADIUS;
     this.camera.left=-width/(2*this.pixelsPerUnit);
     this.camera.right=-this.camera.left;
     this.camera.top=height/(2*this.pixelsPerUnit);
@@ -305,6 +418,7 @@ class Planet {
     this.camera.updateProjectionMatrix();
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,width<560?1.45:1.65));
     this.renderer.setSize(width,height,false);
+    if(this.observation)this.renderer.render(this.scene,this.camera);
   }
 
   pointRay(x,y) {
@@ -321,7 +435,8 @@ class Planet {
 
   pickShrub(x,y) {
     this.pointRay(x,y);
-    const hit=this.ray.intersectObjects(this.saplings.children.filter(shrub=>shrub.visible),true)[0];
+    const hit=this.ray.intersectObjects(this.saplings.children.filter(shrub=>shrub.visible),true)[0]
+      ??this.shrubHighlight.naturalHit(this.ray);
     if(!hit)return null;
     const ground=this.ray.intersectObject(this.surface)[0];
     if(ground&&ground.distance<hit.distance)return null;
@@ -331,6 +446,7 @@ class Planet {
   }
 
   dragTurn(x0,y0,x1,y1) {
+    if(x0!==x1||y0!==y1)this.onManualOrbit?.();
     this.focusTurn=null;
     const box=this.canvas.getBoundingClientRect(), radius=RADIUS*this.pixelsPerUnit*this.scale;
     const ball=(x,y)=>{
@@ -343,6 +459,7 @@ class Planet {
   }
 
   turnKey(horizontal,vertical) {
+    this.onManualOrbit?.();
     this.focusTurn=null;
     const delta=new THREE.Quaternion().setFromEuler(new THREE.Euler(vertical*.18,horizontal*.18,0));
     this.planet.quaternion.premultiply(delta).normalize();
@@ -364,7 +481,47 @@ class Planet {
   }
 
   radiusAt(direction) {
-    return RADIUS+naturalHeight(direction.x,direction.y,direction.z);
+    const {x,y,z}=direction;
+    const u=((Math.atan2(z,x)/TURN+1)%1)*MAP_WIDTH-.5;
+    const v=Math.acos(clamp(y,-1,1))/Math.PI*MAP_HEIGHT-.5;
+    return RADIUS+naturalHeight(x,y,z)+this.moundAt(u,v);
+  }
+
+  moundAt(u,v) {
+    const x=Math.floor(u),y=Math.floor(v),fx=u-x,fy=v-y;
+    const left=(x+MAP_WIDTH)%MAP_WIDTH,right=(left+1)%MAP_WIDTH;
+    const north=clamp(y,0,MAP_HEIGHT-1)*MAP_WIDTH,south=clamp(y+1,0,MAP_HEIGHT-1)*MAP_WIDTH;
+    const a=this.moundPixels[north+left]*(1-fx)+this.moundPixels[north+right]*fx;
+    const b=this.moundPixels[south+left]*(1-fx)+this.moundPixels[south+right]*fx;
+    return (a*(1-fy)+b*fy)*(MOUND_LIMIT/255);
+  }
+
+  setMounds(field) {
+    let changed=false,peak=0;
+    for(let i=0;i<this.moundPixels.length;i++){
+      const value=field?Math.round(clamp(field[i],0,1)*255):0;
+      if(value!==this.moundPixels[i]){
+        changed=true;
+        this.moundPixels[i]=value;
+      }
+      peak=Math.max(peak,value);
+    }
+    if(changed){
+      this.moundTexture.needsUpdate=true;
+      const {geometry}=this.surface;
+      const {position,surfaceDir}=geometry.attributes;
+      for(let i=0;i<position.count;i++){
+        const r=this.baseRadii[i]+this.moundAt(this.surfaceSamples[i*2],this.surfaceSamples[i*2+1]);
+        position.setXYZ(i,surfaceDir.getX(i)*r,surfaceDir.getY(i)*r,surfaceDir.getZ(i)*r);
+      }
+      position.needsUpdate=true;
+      this.smoothSurfaceNormals(geometry);
+      for(const shrub of this.saplings.children){
+        const direction=shrub.userData.direction;
+        shrub.position.copy(direction).multiplyScalar(this.radiusAt(direction)-.015);
+      }
+    }
+    return peak*(MOUND_LIMIT/255);
   }
 
   smoothSurfaceNormals(geometry) {
@@ -422,6 +579,15 @@ class Planet {
     this.placeRing(this.cursor,point,lift);
   }
 
+  showSowHint(active) {
+    if(!active){this.sowHint.visible=false;return;}
+    if(this.sowHint.visible)return;
+    const direction=FRONT.clone().applyQuaternion(this.planet.quaternion.clone().invert());
+    this.placeRing(this.sowHint,direction,.035);
+    this.sowHint.material.opacity=.65;
+    this.sowHintStart=this.clock.getElapsedTime();
+  }
+
   positionSapling(sapling, point) {
     sapling.position.copy(point).multiplyScalar(this.radiusAt(point)-.015);
     sapling.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),point);
@@ -431,9 +597,9 @@ class Planet {
 
   lightSaplings() {
     if(this.saplingLights)return;
-    const sky=new THREE.HemisphereLight(0xf9fff0,0xb5c3a9,2.15);
-    const sun=new THREE.DirectionalLight(0xfff5df,2.5);
-    const rim=new THREE.DirectionalLight(0xe1f7ff,1.25);
+    const sky=new THREE.HemisphereLight(0xfff4e5,0x8d9986,1.48);
+    const sun=new THREE.DirectionalLight(0xfff3e6,2.22);
+    const rim=new THREE.DirectionalLight(0xe3f3ff,1.0);
     sun.position.set(-4,6,8);
     rim.position.set(5,4,-6);
     this.scene.add(sky,sun,rim);
@@ -445,7 +611,12 @@ class Planet {
       if(this.saplingPreview)this.saplingPreview.visible=false;
       return;
     }
-    if(!this.saplingPreview){
+    if(this.saplingPreviewTemplate!==template){
+      if(this.saplingPreview){
+        this.saplingPreview.traverse(child=>{if(child.isMesh)child.material.dispose();if(child.isInstancedMesh)child.dispose();});
+        this.planet.remove(this.saplingPreview);
+      }
+      this.saplingPreviewTemplate=template;
       this.saplingPreview=template.clone();
       this.saplingPreview.traverse(child=>{
         if(!child.isMesh)return;
@@ -502,7 +673,7 @@ class Planet {
         const n=onSurface(tuft,east,north,.007+random()*.022,step);
         const direction=east.clone().multiplyScalar(Math.cos(step)).addScaledVector(north,Math.sin(step));
         direction.addScaledVector(n,-direction.dot(n)).normalize();
-        const r=this.radiusAt(n)-.015;
+        const r=RADIUS+naturalHeight(n.x,n.y,n.z)-.015;
         roots.push(n.x*r,n.y*r,n.z*r);
         normals.push(n.x,n.y,n.z);
         directions.push(direction.x,direction.y,direction.z);
@@ -515,11 +686,76 @@ class Planet {
     geo.instanceCount=styles.length/4;
     this.grass=new THREE.Mesh(geo,new THREE.ShaderMaterial({
       vertexShader:bladeVertex,fragmentShader:bladeFragment,side:THREE.DoubleSide,
-      uniforms:{seeds:{value:this.paintTexture},stressMap:{value:this.stressTexture},dryMap:{value:this.dryTexture},
-        nutrientMap:{value:this.nutrientTexture},soilView:this.soilOpacity,time:{value:0},wind:{value:this.motion?1:0}},
+      uniforms:{...this.herdShade,...this.fireUniforms,hoofPrint:{value:new THREE.Vector3()},seeds:{value:this.paintTexture},sownMap:{value:this.sownTexture},stressMap:{value:this.stressTexture},dryMap:{value:this.dryTexture},
+        nutrientMap:{value:this.nutrientTexture},moundMap:{value:this.moundTexture},soilView:this.soilOpacity,time:{value:0},wind:{value:this.motion?1:0}},
     }));
     this.grass.frustumCulled=false;
     this.planet.add(this.grass);
+  }
+
+  scatterSeeds(point) {
+    this.clearSowing();
+    const layer=new THREE.Group(), kernel=new THREE.SphereGeometry(1,8,5);
+    const tawny=new THREE.MeshStandardMaterial({color:0xfadd80,roughness:.94});
+    const seed=new THREE.InstancedMesh(kernel,tawny,55);
+    const [east,north]=tangentFrame(point), random=randomSource(7512), stamp=new THREE.Object3D();
+    const paths=[];
+    const origin=point.clone().multiplyScalar(this.radiusAt(point)+.58).addScaledVector(east,-.58);
+    for(let i=0;i<seed.count;i++){
+      const direction=i===0?point:onSurface(point,east,north,.32*Math.sqrt(random()),random()*TURN);
+      stamp.position.copy(direction).multiplyScalar(this.radiusAt(direction)+.022);
+      stamp.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),direction);
+      stamp.rotateY(random()*TURN);
+      stamp.scale.set(.031,.021,.076);
+      stamp.updateMatrix();
+      seed.setMatrixAt(i,stamp.matrix);
+      paths.push({end:stamp.position.clone(),rotation:stamp.quaternion.clone(),arc:.22+random()*.54,delay:random()*.36});
+    }
+    layer.add(seed);
+    this.planet.add(layer);
+    this.lightSaplings();
+    this.sowing={layer,seed,kernel,tawny,paths,origin,point,stamp,start:this.clock.getElapsedTime(),settled:!this.motion};
+    seed.frustumCulled=false;
+    this.updateSowing(this.sowing.start);
+  }
+
+  updateSowing(time) {
+    const sowing=this.sowing;
+    if(!sowing||sowing.settled)return;
+    const {seed,paths,origin,point,stamp,start}=sowing;
+    paths.forEach(({end,rotation,arc,delay},i)=>{
+      const t=clamp((time-start-delay)/.95,0,1);
+      stamp.position.lerpVectors(origin,end,t).addScaledVector(point,4*t*(1-t)*arc);
+      stamp.quaternion.copy(rotation);
+      stamp.rotateX((1-t)*(i%2?3.1:-2.6));
+      stamp.scale.set(.031,.021,.076).multiplyScalar(clamp(t*9,0,1));
+      stamp.updateMatrix();seed.setMatrixAt(i,stamp.matrix);
+    });
+    seed.instanceMatrix.needsUpdate=true;
+    sowing.settled=time-start>=1.32;
+  }
+
+  clearSowing() {
+    if(!this.sowing)return;
+    const {layer,kernel,tawny,seed}=this.sowing;
+    this.planet.remove(layer);
+    for(const asset of [kernel,tawny,seed])asset.dispose();
+    this.sowing=null;
+  }
+
+  prepareMeadow(origin) {
+    this.buildGrass();
+    const now=this.clock.getElapsedTime();
+    for(let i=0;i<this.coverage.length;i++){
+      const j=i*3;
+      const dot=this.cellDirs[j]*origin.x+this.cellDirs[j+1]*origin.y+this.cellDirs[j+2]*origin.z;
+      this.coverage[i]=now+.5+(1-dot)*2.5;
+    }
+    this.clearSowing();
+    this.sownPixels.fill(255);
+    this.coveredWeight=this.totalWeight;
+    this.sownTexture.needsUpdate=true;
+    this.paintTexture.needsUpdate=true;
   }
 
   sow(point) {
@@ -531,20 +767,36 @@ class Planet {
       const fringe=.011*Math.sin(i*2.21)*Math.cos(i*.16);
       if(dot>threshold+fringe){
         this.coverage[i]=now+(1-dot)*1.28;
+        this.sownPixels[i]=255;
         this.coveredWeight+=this.rowWeights[Math.floor(i/MAP_WIDTH)];
       }
     }
     if(this.coveredWeight>=this.totalWeight*.965){
       for(let i=0;i<this.coverage.length;i++)if(this.coverage[i]<0)this.coverage[i]=now+.12;
+      this.sownPixels.fill(255);
       this.coveredWeight=this.totalWeight;
     }
     this.paintTexture.needsUpdate=true;
+    this.sownTexture.needsUpdate=true;
     return this.coveredWeight/this.totalWeight;
   }
 
+  cellIndex(direction) {
+    const longitude=(Math.atan2(direction.z,direction.x)/TURN+1)%1;
+    const row=Math.min(MAP_HEIGHT-1,Math.floor(Math.acos(clamp(direction.y,-1,1))/Math.PI*MAP_HEIGHT));
+    return row*MAP_WIDTH+Math.floor(longitude*MAP_WIDTH);
+  }
+
+  grassAt(direction) {
+    const index=this.cellIndex(direction);
+    return this.coverage[index]>=0&&this.dryGround[index]<.84;
+  }
+
   reset() {
+    this.shrubHighlight.clear();
+    this.clearSowing();
     this.previewSapling(null,null);
-    for(const shrub of this.saplings.children)shrub.userData.berries?.mesh.dispose();
+    for(const shrub of this.saplings.children)shrub.traverse(child=>{if(child.isInstancedMesh)child.dispose();});
     this.saplings.clear();
     if(this.saplingLights){
       this.scene.remove(...this.saplingLights);
@@ -558,6 +810,8 @@ class Planet {
     }
     this.coverage.fill(-1);
     this.paintTexture.needsUpdate=true;
+    this.sownPixels.fill(0);
+    this.sownTexture.needsUpdate=true;
     this.stress.fill(0);
     this.stressTexture.needsUpdate=true;
     this.dryGround.fill(0);
@@ -565,14 +819,18 @@ class Planet {
     this.dryTexture.needsUpdate=true;
     this.nutrientPixels.fill(0);
     this.nutrientTexture.needsUpdate=true;
+    this.setMounds(null);
     this.soilView=false;
     this.soilOpacity.value=0;
     this.coveredWeight=0;
+    this.sowHint.visible=false;
     this.resetView();
   }
 
   render() {
     const time=this.clock.getElapsedTime();
+    if(this.observation){this.observation.frame(time);return;}
+    this.updateSowing(time);
     this.updateMeadow?.(time);
     if(this.focusTurn){
       const {start,from,to,scale,fit}=this.focusTurn;
@@ -587,7 +845,13 @@ class Planet {
     this.soilOpacity.value=!this.motion||Math.abs(target-opacity)<.003?target:opacity+(target-opacity)*.18;
     this.surface.material.uniforms.time.value=time;
     if(this.grass)this.grass.material.uniforms.time.value=time;
+    if(this.motion&&this.sowHint.visible){
+      const phase=Math.min(2,(time-this.sowHintStart)/1.35);
+      this.sowHint.material.opacity=.65+.22*Math.sin(phase*Math.PI*2);
+    }
+    this.shrubHighlight.update(time);
     this.renderer.render(this.scene,this.camera);
+    this.shrubHighlight.draw();
   }
 
   showDirection(direction,view=new THREE.Vector3(-.28,.22,.93).normalize()) {
