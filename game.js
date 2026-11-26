@@ -27,17 +27,31 @@ for(const element of document.querySelectorAll("[data-icon]")){
 }
 
 const canvas=$("#world"),hotbar=$("#hotbar"),cursor=$("#placement-cursor"),yearRange=$("#year-range");
+const workspace = $(".workspace");
+const masthead = $(".masthead");
+const dock = $(".dock");
+const timePanel = $("#panel-time");
+const overlayLayout = new ResizeObserver(() => {
+  const height = element => Math.ceil(element.getBoundingClientRect().height) + "px";
+  workspace.style.setProperty("--header-height", height(masthead));
+  workspace.style.setProperty("--dock-height", height(dock));
+  if (workspace.classList.contains("field-years")) {
+    workspace.style.setProperty("--timeline-height", height(timePanel));
+  }
+});
+for (const element of [masthead, dock, timePanel]) overlayLayout.observe(element);
+
 const skyCloud=$("#sky-cloud");
 skyCloud.querySelector("img").src=cloudArt;
 const fieldCanvasLabel=canvas.getAttribute("aria-label");
 const touchOnly=matchMedia("(hover:none)").matches;
 const catalog={
-  seed:{name:"Grass seed",label:"Grass",image:"grass-token",color:"#e1edc8"},
-  buckthorn:{name:"Sea buckthorn",label:"Buckthorn",image:"sapling-token",color:"#e5edc9"},
-  water:{name:"Rain cloud",label:"Rain cloud",icon:"water",color:"#d5eae5"},
-  burn:{name:"Landscape burn",label:"Burn",icon:"burn",color:"#f6d7bd"},
-  spade:{name:"Spade",label:"Uproot",icon:"spade",color:"#e7dcca"},
-  herd:{name:"Grazing herd",label:"Herd",image:"herd-token",color:"#f2e4cb"},
+  seed:{name:"Grass seed",label:"Grass",image:"grass-token"},
+  buckthorn:{name:"Sea buckthorn",label:"Buckthorn",image:"sapling-token"},
+  water:{name:"Rain cloud",label:"Rain cloud",icon:"water"},
+  burn:{name:"Landscape burn",label:"Burn",icon:"burn"},
+  spade:{name:"Spade",label:"Uproot",icon:"spade"},
+  herd:{name:"Grazing herd",label:"Herd",image:"herd-token"},
   cow:{name:"Cow",image:"cow-token"},
   sheep:{name:"Sheep",image:"sheep-token"},
 };
@@ -46,14 +60,13 @@ const inventory={buckthorn:3};
 const penCapacity={cow:2,sheep:3};
 const buttons=new Map();
 for(const [index,id] of items.entries()){
-  const {name,label,image,color}=catalog[id];
+  const {name,label,image}=catalog[id];
   const button=document.createElement("button");
   button.className="slot";
   button.dataset.item=id;
   button.type="button";
   button.setAttribute("aria-pressed","false");
   button.setAttribute("aria-keyshortcuts",String(index+1));
-  button.style.setProperty("--slot-color",color);
   button.title=name;
   const thumbnail=id==="water"?'<img src="'+cloudArt+'" alt="" draggable="false">':image?'<img src="assets/'+image+'.webp" alt="" draggable="false">':iconMarkup(catalog[id].icon);
   button.innerHTML='<kbd aria-hidden="true">'+(index+1)+'</kbd>'+thumbnail+'<span class="slot-label">'+label+'</span>';

@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#e7efda">
+  <meta name="description" content="Design tokens, interactive components, responsive layouts, and theme guidelines for EcoVis Grassland.">
+  <title>EcoVis Design System</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="design-system.css">
+  <script src="theme.js"></script>
+  <script src="design-system.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+  <header class="site-header">
+    <div class="shell header-inner">
+      <a class="wordmark" href="#main" aria-label="EcoVis Design System home">
+        <span class="wordmark-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19c3-6 7-10 14-13-1 7-5 11-11 11m2-3c-4 0-7-3-7-7 4 0 7 2 8 4m-6 8c3 0 5-2 9-6"/></svg></span>
+        <span>EcoVis <em>Grassland</em></span>
+      </a>
+      <nav aria-label="Design system navigation">
+        <a href="#foundations">Tokens</a>
+        <a href="#components">Components</a>
+        <a href="#guidelines">Guidelines</a>
+      </nav>
+      <div class="site-actions">
+        <select class="theme-control" data-theme-control aria-label="Color theme">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+        <a class="primary play-link" href="index.html">Play the game <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="shell">
+    <section class="cover" aria-labelledby="page-title">
+      <div class="cover-copy">
+        <p class="cover-name">EcoVis Grassland</p>
+        <h1 id="page-title">Design System</h1>
+        <p>The colors, type, and controls that make the meadow easy to read and explore in light and dark.</p>
+        <a class="cover-link" href="#foundations">Explore the tokens <span aria-hidden="true">↓</span></a>
+      </div>
+      <figure class="cover-scene">
+        <img src="design-reference/planet.webp" alt="A cow and a sheep graze on the game’s grassy 3D planet." width="714" height="690">
+      </figure>
+    </section>
+
+    <section class="section" id="foundations" aria-labelledby="foundations-title">
+      <div class="section-head">
+        <h2 id="foundations-title">Design tokens</h2>
+        <p>Choose colors by their role in the interface. Switch themes to see how each token changes.</p>
+      </div>
+      <div class="palette" aria-label="Semantic color palette">
+        <figure><div class="swatch" data-swatch="ground"></div><figcaption><strong>Page background</strong><code>--ground</code><span data-value="ground"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="paper"></div><figcaption><strong>Card surface</strong><code>--paper</code><span data-value="paper"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="ink"></div><figcaption><strong>Primary text</strong><code>--ink</code><span data-value="ink"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="muted"></div><figcaption><strong>Secondary text</strong><code>--muted</code><span data-value="muted"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="action"></div><figcaption><strong>Primary action</strong><code>--action</code><span data-value="action"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="on-action"></div><figcaption><strong>Button text</strong><code>--on-action</code><span data-value="on-action"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="selected"></div><figcaption><strong>Selected background</strong><code>--selected</code><span data-value="selected"></span></figcaption></figure>
+        <figure><div class="swatch" data-swatch="focus"></div><figcaption><strong>Keyboard focus</strong><code>--focus</code><span data-value="focus"></span></figcaption></figure>
+      </div>
+      <div class="content-pair foundations-pair">
+        <article class="surface card">
+          <h3>Typography</h3>
+          <dl class="type-list">
+            <div><dt class="type-display">The meadow</dt><dd>Display · 40 px · Georgia</dd></div>
+            <div><dt class="type-title">Field guide</dt><dd>Panel heading · 28 px · Georgia</dd></div>
+            <div><dt>Watch how the meadow changes over time.</dt><dd>Body · 16 px · System sans serif</dd></div>
+            <div><dt class="type-label">Grass cover · 68%</dt><dd>Control label · 14 px</dd></div>
+            <div><dt class="type-caption">Year 20.0</dt><dd>Caption · 13 px</dd></div>
+          </dl>
+          <p class="annotation">Type sizes use rem. The pixel values assume a root font size of 16 px.</p>
+        </article>
+        <article class="surface card dimensions">
+          <h3>Spacing, corners, and shadows</h3>
+          <p class="annotation">Use 4, 8, 12, or 16 px between nearby elements and 24, 32, 48, or 64 px between sections.</p>
+          <div class="space-demo" aria-label="Spacing scale in pixels">
+            <span>4</span><span>8</span><span>12</span><span>16</span><span>24</span><span>32</span><span>48</span><span>64</span>
+          </div>
+          <div class="radius-demo" aria-label="Corner radius examples">
+            <span>8 px</span><span>12 px</span><span>16 px</span><span>24 px</span><span>Pill</span>
+          </div>
+          <div class="shadow-demo"><span>Panel shadow</span><span>Overlay shadow</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="components" aria-labelledby="components-title">
+      <div class="section-head">
+        <h2 id="components-title">Interactive components</h2>
+        <p>These examples share their styles with the game. Try the controls to see their different states.</p>
+      </div>
+      <div class="content-pair">
+        <article class="surface card">
+          <h3>Buttons</h3>
+          <p>Highlight one primary action per task. Use an outlined button for the secondary action.</p>
+          <div class="sample-row">
+            <button class="primary" id="primary-example" type="button">Record observation</button>
+            <button class="secondary" id="button-secondary" type="button">Show hint</button>
+            <button class="primary" type="button" disabled>Locked</button>
+          </div>
+          <div class="segmented" role="group" aria-label="Compare meadow conditions" id="compare-example">
+            <button type="button" aria-pressed="true">Before recovery</button><button type="button" aria-pressed="false">After recovery</button>
+          </div>
+        </article>
+
+        <article class="surface card">
+          <h3>Input and timeline</h3>
+          <form id="input-example" novalidate>
+            <label for="field-note">Field note</label>
+            <div class="note-row">
+              <input class="text-input" id="field-note" placeholder="e.g., Grass now covers the bare soil" aria-describedby="note-help" required>
+              <button type="submit" class="secondary">Save note</button>
+            </div>
+            <p class="annotation" id="note-help">The example clears when you reload the page.</p>
+          </form>
+          <div class="range-demo">
+            <label for="example-year">Observation year <output id="example-year-value" for="example-year">Year 20</output></label>
+            <input class="year-range" type="range" id="example-year" min="0" max="100" step="1" value="20">
+          </div>
+        </article>
+
+        <article class="surface card">
+          <h3>Task card and progress</h3>
+          <p>Show the current goal first, followed by the readings and the next action.</p>
+          <div class="surface card example-guide">
+            <div class="example-guide-head"><span>Field guide</span><strong>6 / 10</strong></div>
+            <div class="progress-track" role="progressbar" aria-label="Field study progress" aria-valuemin="0" aria-valuemax="10" aria-valuenow="6"><span></span></div>
+            <h4>Follow the sea buckthorn</h4>
+            <p>Drag the timeline to see how the grass changes beneath the canopy.</p>
+          </div>
+        </article>
+
+        <article class="surface card">
+          <h3>Modal and toast</h3>
+          <p>Use a modal to confirm an action or show details. A toast briefly reports the result while the rest of the page stays interactive.</p>
+          <div class="sample-row">
+            <button class="secondary" id="show-modal" type="button">Open modal</button>
+            <button class="primary" id="show-toast" type="button">Show toast</button>
+          </div>
+          <div class="toast sample-toast">Observation recorded.</div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section" id="guidelines" aria-labelledby="guidelines-title">
+      <div class="section-head">
+        <h2 id="guidelines-title">Layout and accessibility</h2>
+        <p>Keep the scene in view and place tasks, tools, and feedback where players can find them.</p>
+      </div>
+      <div class="content-pair">
+        <article class="surface card">
+          <h3>Responsive grid</h3>
+          <div class="grid-demo" aria-hidden="true"></div>
+          <dl class="rules">
+            <div><dt>Mobile · 740 px and below</dt><dd>Four columns, with each component example spanning the grid. In the game, the toolbar sits at the bottom and the task card on the right.</dd></div>
+            <div><dt>Tablet · 741–1023 px</dt><dd>Eight columns with two example cards per row. In the game, panels leave more room to interact with the scene.</dd></div>
+            <div><dt>Desktop · 1024 px and above</dt><dd>Twelve columns with a two-column content layout. In the game, frequently used controls sit around the scene.</dd></div>
+          </dl>
+          <p class="annotation">The design system uses 4, 8, and 12 columns. The game results page switches to one column at widths of 760 px and below. Respect the device safe area and keep controls at least 12 px from the screen edges.</p>
+        </article>
+        <article class="surface card">
+          <h3>Accessibility</h3>
+          <dl class="rules accessibility">
+            <div><dt>Contrast</dt><dd>Aim for 4.5:1 for regular text and 3:1 for large text and essential control boundaries.<span id="contrast-values"></span></dd></div>
+            <div><dt>Target size</dt><dd>Give primary buttons, icon buttons, and the theme selector a target of at least 44 × 44 CSS pixels.</dd></div>
+            <div><dt>Text scaling</dt><dd>Use rem units and layouts that wrap so the interface stays usable at 200% text size.</dd></div>
+            <div><dt>Keyboard and motion</dt><dd>Keep keyboard focus visible. Esc closes the modal and returns focus to the button that opened it. Respect system color and reduced-motion preferences.</dd></div>
+          </dl>
+          <p class="annotation"><a href="https://www.w3.org/TR/WCAG22/">WCAG 2.2</a></p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section references" aria-labelledby="references-title">
+      <div class="section-head">
+        <h2 id="references-title">Visual references and voice</h2>
+        <p>Cream paper, moss green, and clay textures. The dark theme pairs deep pine green with warm text and keeps the colors that distinguish grass, soil, and species.</p>
+      </div>
+      <div class="content-pair">
+        <figure class="surface card reference"><img src="design-reference/field-light.webp" width="1280" height="800" loading="lazy" alt="The meadow planet on a pale green background with cream-colored game panels."><figcaption><strong>Light · Daytime meadow</strong></figcaption></figure>
+        <figure class="surface card reference"><img src="design-reference/field-dark.webp" width="1280" height="800" loading="lazy" alt="The meadow planet on a dark green background with pine-green game panels."><figcaption><strong>Dark · Nighttime meadow</strong></figcaption></figure>
+      </div>
+      <p class="voice">Use a calm, specific voice that invites players to notice changes. “Drag the timeline to see how the grass recovers.”</p>
+    </section>
+  </main>
+
+  <dialog id="example-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-copy">
+    <h2 id="dialog-title">Record this observation?</h2>
+    <p id="dialog-copy">Your note stays on this page while you try the other examples.</p>
+    <form method="dialog" class="dialog-actions">
+      <button class="secondary" value="cancel" autofocus>Keep observing</button>
+      <button class="primary" value="confirm">Confirm</button>
+    </form>
+  </dialog>
+  <div class="toast live-toast" id="example-toast" hidden></div>
+  <div class="visually-hidden" role="status" id="example-status"></div>
+</body>
+</html>

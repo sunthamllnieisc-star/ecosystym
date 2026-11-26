@@ -317,10 +317,15 @@ class Planet {
     this.scene.add(this.planet);
     this.saplings=new THREE.Group();
     this.planet.add(this.saplings);
-    this.scene.add(
+    const daylightBackdrop = new THREE.Group();
+    daylightBackdrop.add(
       makeBackdropLayer(14,14,[0,0,-6],"float a=(1.0-smoothstep(.54,1.0,length(p)))*.44;gl_FragColor=vec4(.998,.99,.76,a);"),
       makeBackdropLayer(11,1.1,[0,-5.45,-7],"float a=exp(-dot(p,p)*4.5)*(1.0-smoothstep(.64,1.0,length(p)))*.17;gl_FragColor=vec4(.21,.39,.27,a);"),
     );
+    this.scene.add(daylightBackdrop);
+    const updateBackdrop = () => { daylightBackdrop.visible = ecoTheme.mode === "light"; };
+    updateBackdrop();
+    document.addEventListener("ecovis-themechange", updateBackdrop);
     this.coverage=new Float32Array(MAP_WIDTH*MAP_HEIGHT).fill(-1);
     this.cellDirs=new Float32Array(this.coverage.length*3);
     this.rowWeights=new Float32Array(MAP_HEIGHT);

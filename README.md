@@ -12,3 +12,9 @@ Download or clone this repository, then open `index.html` in a browser with WebG
 - Uproot shrubs individually or choose the landscape burn. Watch grass return to the cleared ground.
 
 This project bundles Three.js. See [its license](vendor/THREE-LICENSE.txt).
+
+## Design system and color theme
+
+Open `design-system.html` for the interactive design system, including token swatches, component states, responsive layouts, accessibility targets, and screenshots from the game.
+
+The game and design system share `tokens.css`, `components.css`, and `theme.js`. The theme selector supports Light, Dark, and System. Both pages share the saved selection when served from the same local or hosted origin.

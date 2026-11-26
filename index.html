@@ -2,16 +2,19 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#e6eed7">
   <meta name="description" content="Grow a meadow and explore how shrubs, grazing and time change your planet.">
   <title>EcoVis Grassland</title>
   <link rel="icon" href="data:,">
-  <link rel="stylesheet" href="styles.css?v=ce38055f4d27">
+  <link rel="stylesheet" href="tokens.css">
+  <link rel="stylesheet" href="components.css">
+  <link rel="stylesheet" href="styles.css?v=ecovis-theme">
+  <script src="theme.js"></script>
   <script src="vendor/three.min.js" defer></script>
   <script src="restoration-effects.js" defer></script>
   <script src="shrub-highlight.js" defer></script>
-  <script src="terrain.js" defer></script>
+  <script src="terrain.js?v=ecovis-theme" defer></script>
   <script src="sapling.js" defer></script>
   <script src="meadow-motion.js" defer></script>
   <script src="clay-coats.js" defer></script>
@@ -25,7 +28,7 @@
   <script src="stand-observation.js" defer></script>
   <script src="recovery-result.js" defer></script>
   <script src="field-study.js?v=a5814d268e6c" defer></script>
-  <script src="game.js?v=40d4e5bad09e" defer></script>
+  <script src="game.js?v=ecovis-theme" defer></script>
 </head>
 <body>
   <main class="workspace">
@@ -37,7 +40,7 @@
       <button type="button" id="sky-cloud" data-item="water" aria-label="Pick up the rain cloud" title="Drag the cloud to the seeds" hidden><img alt="" draggable="false"></button>
       <p id="fallback" hidden>3D rendering is unavailable here. Open the sandbox in a browser with WebGL 2 enabled.</p>
     </section>
-    <div id="result-compare" class="result-compare" role="group" aria-label="Compare the meadow" hidden>
+    <div id="result-compare" class="result-compare segmented" role="group" aria-label="Compare the meadow" hidden>
       <button type="button" id="result-before" aria-pressed="false">Before clearing</button>
       <button type="button" id="result-after" aria-pressed="true">After recovery</button>
     </div>
@@ -50,8 +53,15 @@
         <div class="progress-label"><span id="guide-progress-label">Field study</span><strong id="guide-count" aria-hidden="true">0 / 10</strong></div>
         <div class="progress-track" id="guide-progress" role="progressbar" aria-labelledby="guide-progress-label" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0"><span></span></div>
       </div>
-      <button class="icon-button restart" id="restart" aria-label="Restart" title="Restart"><span data-icon="restart"></span><span class="restart-label">Restart</span></button>
-      <button class="icon-button" id="bed-leave" type="button" aria-label="Return to the meadow" hidden><span data-icon="close"></span><span>Back</span></button>
+      <div class="header-actions">
+        <select class="theme-control" data-theme-control aria-label="Color theme" title="Color theme">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+        <button class="icon-button restart" id="restart" aria-label="Restart" title="Restart"><span data-icon="restart"></span><span class="restart-label">Restart</span></button>
+        <button class="icon-button" id="bed-leave" type="button" aria-label="Return to the meadow" hidden><span data-icon="close"></span><span>Back</span></button>
+      </div>
     </header>
 
     <section id="recovery-result" aria-labelledby="result-title" hidden>
